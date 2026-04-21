@@ -761,7 +761,7 @@ def run(proxy: Optional[str], run_ctx: dict = None) -> tuple:
 
                         if "/add-phone" in code_account_url:
                             print(f"[{cfg.ts()}] [WARNING] （{mask_email(email)}） 账号创建过程触发手机风控...")
-                            if not bool(cfg.HERO_SMS_ENABLED) and  not bool(cfg.HERO_SMS_VERIFY_ON_REGISTER):
+                            if not bool(cfg.HERO_SMS_ENABLED):
                                 if attempt < MAX_REG_RETRIES - 1:
                                     print(
                                         f"[{cfg.ts()}] [INFO] （{mask_email(email)}） 准备重置环境，重新进行第 {attempt + 2} 次 注册流程尝试...")
