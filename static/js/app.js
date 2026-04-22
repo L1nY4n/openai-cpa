@@ -22,7 +22,7 @@ function normalizeBooleanLike(value, defaultValue = false) {
 createApp({
     data() {
         return {
-            appVersion: 'v12.0.0',
+            appVersion: 'v12.0.1',
             isLoggedIn: !!localStorage.getItem('auth_token'),
             loginPassword: '',
             currentTab: window.location.hash.replace('#', '') || 'console',
@@ -171,6 +171,9 @@ createApp({
                 suffix_len_max: 12
             },
             cloudStatusFilter: 'all',
+            searchAccounts: '',
+            searchCloud: '',
+            searchMailboxes: '',
         };
     },
     mounted() {
@@ -196,7 +199,28 @@ createApp({
             return Math.ceil(this.totalAccounts / this.pageSize) || 1;
         },
         filteredAccounts() {
-            return this.accounts;
+            let res = this.accounts;
+            if (this.searchAccounts) {
+                const term = this.searchAccounts.toLowerCase();
+                res = res.filter(a => a.email && a.email.toLowerCase().includes(term));
+            }
+            return res;
+        },
+        filteredCloud() {
+            let res = this.cloudAccounts;
+            if (this.searchCloud) {
+                const term = this.searchCloud.toLowerCase();
+                res = res.filter(a => a.credential && a.credential.toLowerCase().includes(term));
+            }
+            return res;
+        },
+        filteredMailboxes() {
+            let res = this.mailboxes;
+            if (this.searchMailboxes) {
+                const term = this.searchMailboxes.toLowerCase();
+                res = res.filter(a => a.email && a.email.toLowerCase().includes(term));
+            }
+            return res;
         },
         cloudTotalPages() {
             return Math.ceil(this.cloudTotal / this.cloudPageSize) || 1;
@@ -279,8 +303,10 @@ createApp({
         },
         async initApp() {
             await this.fetchConfig();
-            this.fetchAccounts();
             this.initSSE();
+            this.fetchAccounts();
+            this.fetchCloudAccounts();
+            this.fetchMailboxes();
             this.startStatsPolling();
             this.checkUpdate();
             if (this.config && this.config.reg_mode === 'extension') {
@@ -533,7 +559,12 @@ createApp({
             }
         },
 		changePage(newPage) {
-            if (newPage < 1 || newPage > this.totalPages) return;
+            if (!newPage || isNaN(newPage)) newPage = 1;
+            newPage = Math.max(1, Math.min(newPage, this.totalPages));
+            if (this.currentPage === newPage) {
+                this.$forceUpdate(); // 强制刷新非法输入的UI
+                return;
+            }
             this.currentPage = newPage;
             this.selectedAccounts = []; 
             this.fetchAccounts(false);
@@ -1596,7 +1627,7 @@ createApp({
         },
         toggleAllCloud(e) {
             if (e.target.checked) {
-                this.selectedCloud = this.cloudAccounts.map(a => ({ id: String(a.id), type: a.account_type }));
+                this.selectedCloud = this.filteredCloud.map(a => ({ id: String(a.id), type: a.account_type }));
             } else {
                 this.selectedCloud = [];
             }
@@ -1610,7 +1641,12 @@ createApp({
             this.showCloudDetailModal = true;
         },
         changeCloudPage(newPage) {
-            if (newPage < 1 || newPage > this.cloudTotalPages) return;
+            if (!newPage || isNaN(newPage)) newPage = 1;
+            newPage = Math.max(1, Math.min(newPage, this.cloudTotalPages));
+            if (this.cloudPage === newPage) {
+                this.$forceUpdate();
+                return;
+            }
             this.cloudPage = newPage;
             this.fetchCloudAccounts();
         },
@@ -1906,7 +1942,12 @@ createApp({
             }
         },
         changeMailboxPage(newPage) {
-            if (newPage < 1 || newPage > this.mailboxTotalPages) return;
+            if (!newPage || isNaN(newPage)) newPage = 1;
+            newPage = Math.max(1, Math.min(newPage, this.mailboxTotalPages));
+            if (this.mailboxPage === newPage) {
+                this.$forceUpdate();
+                return;
+            }
             this.mailboxPage = newPage;
             this.fetchMailboxes();
         },
@@ -1915,7 +1956,7 @@ createApp({
             this.fetchMailboxes();
         },
         toggleAllMailboxes(event) {
-            if (event.target.checked) this.selectedMailboxes = [...this.mailboxes];
+            if (event.target.checked) this.selectedMailboxes = [...this.filteredMailboxes];
             else this.selectedMailboxes = [];
         },
         async submitImportMailboxes() {
