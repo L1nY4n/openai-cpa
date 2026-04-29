@@ -118,7 +118,10 @@ def init_db():
             execute_sql(c, 'ALTER TABLE accounts ADD COLUMN push_time VARCHAR(50) DEFAULT NULL;')
         except Exception:
             pass
-
+        try:
+            execute_sql(c, 'ALTER TABLE team_accounts ADD COLUMN access_token TEXT;')
+        except Exception:
+            pass
     print(f"[{cfg.ts()}] [系统] 数据库模块初始化完成 (引擎: {DB_TYPE.upper()})")
 
 

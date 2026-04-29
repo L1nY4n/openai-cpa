@@ -780,9 +780,10 @@ async def import_team_accounts(req: ImportTeamReq, token: str = Depends(verify_t
     for line in lines:
         acc_token = line.strip()
         if not acc_token or len(acc_token) < 50: continue
-        email = email_jwt(acc_token)
+        jwt_data = email_jwt(acc_token)
+        real_email = jwt_data.get("email", "") if isinstance(jwt_data, dict) else ""
         parsed_teams.append({
-            "email": email or "未知邮箱(解析失败)",
+            "email": real_email if real_email else "未知邮箱(解析失败)",
             "access_token": acc_token,
             "status": 1
         })
