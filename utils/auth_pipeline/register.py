@@ -476,7 +476,6 @@ def run(proxy: Optional[str], run_ctx: dict = None) -> tuple:
                         try:
                             from utils import db_manager
                             import json
-                            data = image2api_data(s_reg, target_continue_url, proxies)
                             if data:
                                 image2api_token_data = json.dumps({
                                     "status": "image2api",
