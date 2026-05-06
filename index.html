@@ -3526,9 +3526,15 @@
                                         <input type="number" v-model.number="config.login_delay_max" class="w-full appearance-none bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-lg py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-colors shadow-inner text-center">
                                     </div>
                                 </div>
-                                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between gap-4">
-                                    <label class="text-[11px] text-slate-500 font-black uppercase tracking-wider leading-relaxed">验证码(OTP)<br>重试上限次数</label>
-                                    <input type="number" v-model.number="config.max_otp_retries" class="w-24 appearance-none bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-lg py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-colors shadow-inner text-center">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-4">
+                                    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between gap-4">
+                                        <label class="text-[11px] text-slate-500 font-black uppercase tracking-wider leading-relaxed">验证码(OTP)<br>重发(Resend)次数</label>
+                                        <input type="number" v-model.number="config.max_otp_retries" class="w-24 appearance-none bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-lg py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-colors shadow-inner text-center">
+                                    </div>
+                                    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between gap-4">
+                                        <label class="text-[11px] text-slate-500 font-black uppercase tracking-wider leading-relaxed">验证码提取<br>单次轮询最大次数</label>
+                                        <input type="number" v-model.number="config.otp_poll_max_attempts" class="w-24 appearance-none bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-lg py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-colors shadow-inner text-center" placeholder="默认 20">
+                                    </div>
                                 </div>
                             </div>
                             <div class="bg-white p-6 md:p-8 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 border border-slate-200/60 border-t-8 border-t-emerald-500 bg-gradient-to-br from-emerald-50/10 to-white lg:col-span-2">
