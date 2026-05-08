@@ -904,6 +904,9 @@ def _handle_sub2api_dead_account(item: dict, client: Any, is_disabled: bool) -> 
 def process_sub2api_worker(i: int, total: int, item: dict, client: Any, args: Any) -> bool:
     """Sub2API 测活 Worker（使用 Sub2API /test SSE 接口）"""
     if hasattr(args, 'check_stop') and args.check_stop(): return False
+    creds = item.get("credentials", {})
+    if item.get("platform") != "openai" or str(creds.get("plan_type", "free")).lower() != "free":
+        return True
     name = item.get("name", "unknown")
     account_id = item.get("id")
     result, reason = client.test_account(account_id)
