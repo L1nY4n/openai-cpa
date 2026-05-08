@@ -217,6 +217,7 @@ createApp({
                 isDeploying: false,
                 isSettingCatchAll: false
             },
+            isUpdatingSystem: false,
         };
     },
     watch: {
@@ -1680,10 +1681,39 @@ createApp({
         },
         async promptUpdate() {
             if (!this.updateInfo.hasUpdate) return;
-            const msg = `🚀 发现新版本: ${this.updateInfo.version}\n\n📝 更新内容:\n${this.updateInfo.changelog}\n\n是否前往 GitHub 查看并下载更新？`;
+            const msg = `🚀 发现新版本: ${this.updateInfo.version}\n\n📝 更新内容:\n${this.updateInfo.changelog}\n\n是否立即执行一键更新？\n(系统将自动识别 Docker/本地环境，更新期间请勿关闭页面)`;
             const confirmed = await this.customConfirm(msg);
             if (confirmed) {
-                window.open(this.updateInfo.url, '_blank');
+                this.executeAutoUpdate();
+            }
+        },
+        async executeAutoUpdate() {
+            this.isUpdatingSystem = true;
+            this.showToast("🚀 正在下发更新指令，请耐心等待...", "info");
+            try {
+                const res = await this.authFetch('/api/system/auto_update', { method: 'POST' });
+                const data = await res.json();
+
+                if (data.status === 'success') {
+                    this.showToast(`✅ ${data.message}`, "success");
+                    if(this.statsTimer) clearInterval(this.statsTimer);
+                    if(this.evtSource) this.evtSource.close();
+
+                    this.showToast("⏳ 网页将在 20 秒后自动刷新...", "info");
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 20000);
+
+                } else if (data.status === 'warning') {
+                    this.showToast(`⚠️ ${data.message}`, "warning");
+                    this.isUpdatingSystem = false;
+                } else {
+                    this.showToast(`❌ 更新失败: ${data.message}`, "error");
+                    this.isUpdatingSystem = false;
+                }
+            } catch (e) {
+                this.showToast("更新指令已发送，由于后端重启，连接已断开，请稍后手动刷新。", "warning");
+                setTimeout(() => { window.location.reload(); }, 20000);
             }
         },
         async getGmailAuthUrl() {

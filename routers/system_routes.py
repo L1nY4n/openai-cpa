@@ -7,6 +7,11 @@ import threading
 import sys
 import subprocess
 import httpx
+import requests
+import zipfile
+import io
+import shutil
+
 from typing import Optional, Any
 from fastapi import APIRouter, Depends, Query, Request, WebSocket, HTTPException
 from fastapi.responses import HTMLResponse, StreamingResponse
@@ -563,3 +568,111 @@ def ext_stop(token: str = Depends(verify_token)):
 @router.get("/api/system/version")
 def get_system_version():
     return {"status": "success", "version": cfg.APP_VERSION}
+
+
+def is_docker():
+    path = '/proc/self/cgroup'
+    return (
+            os.path.exists('/.dockerenv') or
+            os.path.exists('/run/.containerenv') or
+            (os.path.isfile(path) and any('docker' in line for line in open(path)))
+    )
+
+@router.post("/api/system/auto_update")
+def auto_update(token: str = Depends(verify_token)):
+    if is_docker():
+        return execute_docker_update()
+    else:
+        return execute_native_update()
+
+
+def execute_docker_update():
+    try:
+        import docker
+        client = docker.from_env()
+        image_name = "wenfxl/wenfxl-codex-manager:latest"
+
+        print(f"[{core_engine.ts()}] [系统] 正在从 Docker Hub 拉取最新镜像...")
+        client.images.pull(image_name)
+
+        try:
+            wt_container = client.containers.get("watchtower")
+        except docker.errors.NotFound:
+            return {"status": "warning", "message": "镜像拉取成功，但未找到 watchtower 容器，请手动执行 docker-compose up -d"}
+
+        def trigger_watchtower():
+            time.sleep(2)
+            wt_container.restart()
+
+        threading.Thread(target=trigger_watchtower).start()
+
+        return {"status": "success", "message": "最新镜像已就绪！正在唤醒 Watchtower 重建容器，网页将在几秒后断开..."}
+
+    except Exception as e:
+        return {"status": "error", "message": f"Docker 更新异常: {str(e)}"}
+
+
+def execute_native_update():
+    try:
+        proxy_url = getattr(core_engine.cfg, 'DEFAULT_PROXY', None)
+        proxies = None
+        if proxy_url:
+            proxies = {
+                "http": proxy_url,
+                "https": proxy_url
+            }
+            print(f"[{core_engine.ts()}] [系统] 🚀 正在使用全局代理穿透下载更新: {proxy_url}")
+        else:
+            print(f"[{core_engine.ts()}] [系统] ⚠️ 未检测到全局代理，尝试直连下载...")
+
+        web_url = "https://github.com/wenfxl/openai-cpa/releases/latest"
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+        release_response = requests.head(web_url, headers=headers, proxies=proxies, allow_redirects=False, timeout=15)
+
+        if release_response.status_code == 302:
+            redirect_url = release_response.headers.get('Location')
+            if not redirect_url:
+                raise Exception("无法从 GitHub 获取重定向地址")
+            latest_tag = redirect_url.split('/')[-1]
+            print(f"[{core_engine.ts()}] [系统] 🎉 成功获取最新版本标签: {latest_tag}")
+
+            zip_url = f"https://github.com/wenfxl/openai-cpa/archive/refs/tags/{latest_tag}.zip"
+        else:
+            raise Exception(f"请求被拒绝或状态异常，状态码: {release_response.status_code}")
+
+        print(f"[{core_engine.ts()}] [系统] 🚀 开始下载新版本源码包: {zip_url}")
+
+        response = requests.get(zip_url, headers=headers, stream=True, proxies=proxies, timeout=60)
+        response.raise_for_status()
+
+        with zipfile.ZipFile(io.BytesIO(response.content)) as zip_ref:
+            root_dir = zip_ref.namelist()[0]
+            for member in zip_ref.namelist():
+                if member == root_dir:
+                    continue
+                target_path = os.path.join(os.getcwd(), member.replace(root_dir, "", 1))
+                if member.endswith('/'):
+                    os.makedirs(target_path, exist_ok=True)
+                else:
+                    os.makedirs(os.path.dirname(target_path), exist_ok=True)
+                    with zip_ref.open(member) as source, open(target_path, "wb") as target:
+                        shutil.copyfileobj(source, target)
+
+        def restart_server():
+            time.sleep(2)
+            print(f"[{core_engine.ts()}] [系统] 🔄 代码覆盖完毕，正在执行热重启...")
+            try:
+                sys.stdout.flush()
+                sys.stderr.flush()
+                subprocess.Popen([sys.executable] + sys.argv)
+                os._exit(0)
+            except Exception as e:
+                print(f"[{core_engine.ts()}] [系统] ❌ 重启失败: {e}")
+                os._exit(1)
+
+        threading.Thread(target=restart_server).start()
+
+        return {"status": "success", "message": "本地代码更新完成，系统正在热重启..."}
+
+    except Exception as e:
+        return {"status": "error", "message": f"本地更新异常: {str(e)}"}
