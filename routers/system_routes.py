@@ -307,23 +307,36 @@ async def save_config(new_config: dict, token: str = Depends(verify_token)):
 @router.get("/api/system/check_update")
 async def check_update(current_version: str, token: str = Depends(verify_token)):
     try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            resp = await client.get("https://api.github.com/repos/wenfxl/openai-cpa/releases/latest",
-                                    headers={"Accept": "application/vnd.github.v3+json"})
-            if resp.status_code != 200: return {"status": "error",
-                                                "message": f"无法获取更新数据 (GitHub API 返回 HTTP {resp.status_code})"}
-        data = resp.json()
-        remote_version = data.get("tag_name", "")
+        proxy_url = getattr(core_engine.cfg, 'DEFAULT_PROXY', None)
 
+        web_url = "https://github.com/wenfxl/openai-cpa/releases/latest"
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+        async with httpx.AsyncClient(proxy=proxy_url, timeout=15.0) as client:
+            resp = await client.head(web_url, headers=headers, follow_redirects=False)
+
+            if resp.status_code == 302:
+                redirect_url = resp.headers.get("Location")
+                if not redirect_url:
+                    return {"status": "error", "message": "无法从 GitHub 获取重定向地址"}
+                remote_version = redirect_url.split("/")[-1]
+                html_url = redirect_url
+                download_url = f"https://github.com/wenfxl/openai-cpa/archive/refs/tags/{remote_version}.zip"
+            else:
+                return {"status": "error", "message": f"获取版本失败，状态码: {resp.status_code}"}
         def _parse(v):
             return [int(x) for x in re.findall(r'\d+', str(v))]
 
         has_update = _parse(remote_version) > _parse(current_version) if remote_version else False
-        assets = data.get("assets")
-        download_url = assets[0].get("browser_download_url", "") if assets else data.get("zipball_url", "")
-        return {"status": "success", "has_update": has_update, "remote_version": remote_version,
-                "changelog": data.get("body", "无更新日志"), "download_url": download_url,
-                "html_url": data.get("html_url", "")}
+        changelog = "暂不展示详细日志。请自行前往仓库查看。"
+
+        return {
+            "status": "success",
+            "has_update": has_update,
+            "remote_version": remote_version,
+            "changelog": changelog,
+            "download_url": download_url,
+            "html_url": html_url
+        }
     except Exception as e:
         return {"status": "error", "message": f"检查更新发生未知异常: {str(e)}"}
 
@@ -635,29 +648,28 @@ def auto_update(token: str = Depends(verify_token)):
 
 def execute_docker_update():
     try:
-        import docker
-        client = docker.from_env()
+        project_path = os.getenv("HOST_PROJECT_PATH")
         image_name = "wenfxl/wenfxl-codex-manager:latest"
+        print(f"[{core_engine.ts()}] [系统] 🚀 正在通过官方 Compose 引擎执行重建...")
+        subprocess.run(["docker", "pull", image_name], check=False)
+        update_cmd = (
+            f"nohup docker run --rm "
+            f"-v /var/run/docker.sock:/var/run/docker.sock "
+            f"-v {project_path}:{project_path} "
+            f"-w {project_path} "
+            f"docker/compose:latest up -d --no-deps codex-web > /dev/null 2>&1 &"
+        )
 
-        print(f"[{core_engine.ts()}] [系统] 正在从 Docker Hub 拉取最新镜像...")
-        client.images.pull(image_name)
+        print(f"[{core_engine.ts()}] [系统] 🔄 指令已发出，由官方引擎接管重建任务...")
+        subprocess.Popen(update_cmd, shell=True)
 
-        try:
-            wt_container = client.containers.get("watchtower")
-        except docker.errors.NotFound:
-            return {"status": "warning", "message": "镜像拉取成功，但未找到 watchtower 容器，请手动执行 docker-compose up -d"}
-
-        def trigger_watchtower():
-            time.sleep(2)
-            wt_container.restart()
-
-        threading.Thread(target=trigger_watchtower).start()
-
-        return {"status": "success", "message": "最新镜像已就绪！正在唤醒 Watchtower 重建容器，网页将在几秒后断开..."}
+        return {
+            "status": "success",
+            "message": "更新指令已由官方引擎接管！系统正在自我重建，请 20 秒后刷新网页..."
+        }
 
     except Exception as e:
-        return {"status": "error", "message": f"Docker 更新异常: {str(e)}"}
-
+        return {"status": "error", "message": f"更新异常: {str(e)}"}
 
 def execute_native_update():
     try:
