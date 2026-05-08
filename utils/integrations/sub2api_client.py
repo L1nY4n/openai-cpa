@@ -245,6 +245,21 @@ class Sub2APIClient:
         logger.info("Fetched %s Sub2API accounts across paginated results", len(all_items))
         return True, all_items
 
+    def get_account_usage(self, account_id: str) -> Tuple[bool, Any]:
+        url = f"{self.api_url}/api/v1/admin/accounts/{account_id}/usage"
+        params = {"timezone": "Asia/Shanghai"}
+        try:
+            response = cffi_requests.get(
+                url,
+                headers=self.headers,
+                params=params,
+                **self.request_kwargs
+            )
+            return self._handle_response(response)
+        except Exception as exc:
+            logger.error("Get Sub2API account usage %s failed: %s", account_id, exc)
+            return False, str(exc)
+
     def add_account(self, token_data: Dict[str, Any]) -> Tuple[bool, str]:
         settings = self._get_push_settings()
         working_token_data = dict(token_data)
