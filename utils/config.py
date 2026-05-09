@@ -271,6 +271,7 @@ ENABLE_IMAGE2API_MODE: bool = False
 IMAGE2API_URL: str = ""
 IMAGE2API_KEY: str = ""
 IMAGE2API_RETAIN_REG_ONLY: bool = False
+IMAGE2API_IMG_ONLY_MODE: bool = False
 
 LUCKMAIL_PREFERRED_DOMAIN: str = ""
 LUCKMAIL_EMAIL_TYPE: str = ""
@@ -430,7 +431,7 @@ def reload_all_configs(new_config_dict=None):
     global SUB2API_ACCOUNT_CONCURRENCY, SUB2API_ACCOUNT_LOAD_FACTOR, SUB2API_ACCOUNT_PRIORITY, SUB2API_DEFAULT_PROXY
     global SUB2API_DEFAULT_PROXY_POOL
     global SUB2API_ACCOUNT_RATE_MULTIPLIER, SUB2API_ACCOUNT_GROUP_IDS, SUB2API_ENABLE_WS_MODE
-    global ENABLE_IMAGE2API_MODE, IMAGE2API_URL, IMAGE2API_KEY, IMAGE2API_RETAIN_REG_ONLY
+    global ENABLE_IMAGE2API_MODE, IMAGE2API_URL, IMAGE2API_KEY, IMAGE2API_RETAIN_REG_ONLY, IMAGE2API_IMG_ONLY_MODE
 
     global LUCKMAIL_API_KEY, LUCKMAIL_PREFERRED_DOMAIN, LUCKMAIL_EMAIL_TYPE, LUCKMAIL_VARIANT_MODE, LUCKMAIL_REUSE_PURCHASED, LUCKMAIL_TAG_ID
     global HERO_SMS_ENABLED, HERO_SMS_API_KEY, HERO_SMS_BASE_URL, HERO_SMS_COUNTRY, HERO_SMS_SERVICE
@@ -705,6 +706,7 @@ def reload_all_configs(new_config_dict=None):
     IMAGE2API_URL = format_docker_url(str(_image2api.get("api_url", "")).strip()).rstrip("/")
     IMAGE2API_KEY = str(_image2api.get("api_key", "")).strip()
     IMAGE2API_RETAIN_REG_ONLY = safe_bool(_image2api.get("retain_reg_only", False))
+    IMAGE2API_IMG_ONLY_MODE = safe_bool(_image2api.get("img_only_mode", False))
 
     reset_sub2api_proxy_rotation()
     _normal = _c.get("normal_mode", {})

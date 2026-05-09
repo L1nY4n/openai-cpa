@@ -963,10 +963,16 @@ createApp({
                         enable: false,
                         api_url: '',
                         api_key: '',
-                        retain_reg_only: false
+                        retain_reg_only: false,
+                        img_only_mode: false
                     };
-                } else if (this.config.image2api_mode.retain_reg_only === undefined) {
-                    this.config.image2api_mode.retain_reg_only = false;
+                } else {
+                    if (this.config.image2api_mode.retain_reg_only === undefined) {
+                        this.config.image2api_mode.retain_reg_only = false;
+                    }
+                    if (this.config.image2api_mode.img_only_mode === undefined) {
+                        this.config.image2api_mode.img_only_mode = false;
+                    }
                 }
                 if (!this.config.team_mode) {
                     this.config.team_mode = { enable: false };
