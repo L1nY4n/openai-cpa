@@ -568,8 +568,8 @@
                                         <tr v-if="filteredAccounts.length === 0">
                                             <td colspan="7" class="px-6 py-16 text-center text-slate-400 font-medium bg-slate-50/30">暂无本地记录</td>
                                         </tr>
-                                        <tr v-for="(acc, index) in filteredAccounts" :key="index" class="hover:bg-indigo-50/40 transition duration-200" :class="{'bg-indigo-50/60': selectedAccounts.includes(acc)}">
-                                            <td class="px-3 md:px-4 py-3 whitespace-nowrap"><input type="checkbox" :value="acc" v-model="selectedAccounts" class="form-checkbox w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 transition-all"></td>
+                                        <tr v-for="(acc, index) in filteredAccounts" :key="index" class="hover:bg-indigo-50/40 transition duration-200" :class="{'bg-indigo-50/60': selectedAccounts.includes(acc.email)}">
+                                            <td class="px-3 md:px-4 py-3 whitespace-nowrap"><input type="checkbox" :value="acc.email" v-model="selectedAccounts" class="form-checkbox w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 transition-all"></td>
                                             <td class="px-2 md:px-3 py-3 whitespace-nowrap text-xs text-slate-400 font-mono font-medium">{{ index + 1 }}</td>
 
                                             <td class="px-3 md:px-4 py-3 whitespace-nowrap">
@@ -746,8 +746,8 @@
                                         <tr v-if="filteredMailboxes.length === 0">
                                             <td colspan="6" class="px-6 py-16 text-center text-slate-400 font-medium bg-slate-50/30">暂无邮箱数据，请点击右上角导入</td>
                                         </tr>
-                                        <tr v-for="(mb, index) in filteredMailboxes" :key="index" class="hover:bg-slate-50 transition duration-200">
-                                            <td class="px-5 md:px-8 py-4 whitespace-nowrap"><input type="checkbox" :value="mb" v-model="selectedMailboxes" class="form-checkbox w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500"></td>
+                                        <tr v-for="(mb, index) in filteredMailboxes" :key="index" class="hover:bg-slate-50 transition duration-200" :class="{'bg-indigo-50/60': selectedMailboxes.includes(mb.email)}">
+                                            <td class="px-5 md:px-8 py-4 whitespace-nowrap"><input type="checkbox" :value="mb.email" v-model="selectedMailboxes" class="form-checkbox w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500"></td>
                                             <td class="px-5 md:px-8 py-4 whitespace-nowrap text-sm text-slate-400 font-mono font-medium">{{ index + 1 }}</td>
                                             <td class="px-5 md:px-8 py-4 whitespace-nowrap text-sm font-bold text-slate-700">
                                                 {{ showMailboxesPlaintext ? mb.email : maskEmail(mb.email) }}
@@ -2952,9 +2952,9 @@
                                         <tr v-if="!filteredCloud.length">
                                             <td colspan="7" class="px-6 py-16 text-center text-slate-400 font-medium bg-slate-50/30">暂无云端账号数据或未勾选平台</td>
                                         </tr>
-                                        <tr v-for="acc in filteredCloud" :key="acc.id + acc.account_type" class="hover:bg-indigo-50/40 transition duration-200" :class="{'bg-indigo-50/60': selectedCloud.some(s => s.id === acc.id && s.type === acc.account_type)}">
+                                        <tr v-for="acc in filteredCloud" :key="acc.id + acc.account_type" class="hover:bg-indigo-50/40 transition duration-200" :class="{'bg-indigo-50/60': selectedCloud.includes(acc.id + '|' + acc.account_type)}">
                                             <td class="px-5 md:px-8 py-4 whitespace-nowrap">
-                                                <input type="checkbox" :value="{id: String(acc.id), type: acc.account_type}" v-model="selectedCloud" class="form-checkbox w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 transition-all">
+                                                <input type="checkbox" :value="acc.id + '|' + acc.account_type" v-model="selectedCloud" class="form-checkbox w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 transition-all">
                                             </td>
                                             <td class="px-5 md:px-8 py-4 whitespace-nowrap">
                                                 <span v-if="acc.account_type === 'sub2api'" class="px-2.5 py-1 rounded-md text-[10px] md:text-xs font-black bg-purple-50 text-purple-600 border border-purple-200 shadow-sm uppercase tracking-widest">Sub2API</span>

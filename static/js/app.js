@@ -1357,7 +1357,7 @@ createApp({
                 return;
             }
 
-            const emails = this.selectedAccounts.map(acc => acc.email);
+            const emails = this.selectedAccounts;
 
             try {
                 const res = await this.authFetch('/api/accounts/export_selected', {
@@ -1444,9 +1444,8 @@ createApp({
 		exportAccountsToTxt() {
 			if (this.selectedAccounts.length === 0) return;
 
-			const textContent = this.selectedAccounts
-				.map(acc => `${acc.email}----${acc.password}`)
-				.join('\n');
+			const selectedObjs = this.accounts.filter(acc => this.selectedAccounts.includes(acc.email));
+            const textContent = selectedObjs.map(acc => `${acc.email}----${acc.password}`).join('\n');
 
 			const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
 			const url = URL.createObjectURL(blob);
@@ -1470,7 +1469,7 @@ createApp({
             if (!confirmed) return;
 			this.isDeletingAccounts = true;
             try {
-                const emailsToDelete = this.selectedAccounts.map(acc => acc.email);
+                const emailsToDelete = this.selectedAccounts;
 
                 const res = await this.authFetch('/api/accounts/delete', {
                     method: 'POST',
@@ -1496,6 +1495,13 @@ createApp({
         toggleAll(event) {
             if (event.target.checked) this.selectedAccounts = [...this.filteredAccounts];
             else this.selectedAccounts = [];
+        },
+        toggleAllCloud(e) {
+            if (e.target.checked) {
+                this.selectedCloud = this.filteredCloud.map(a => String(a.id) + '|' + a.account_type);
+            } else {
+                this.selectedCloud = [];
+            }
         },
         toggleHideRegisterOnlyAccounts() {
             this.hideRegisterOnlyAccounts = !this.hideRegisterOnlyAccounts;
@@ -1610,7 +1616,8 @@ createApp({
               this.showToast("🚫 请先开启 CPA 巡检并填写 API", "warning"); return;
             }
             if (this.selectedAccounts.length === 0) return;
-            const targetAccounts = this.selectedAccounts.filter(acc => !acc.push_platform || !acc.push_platform.toUpperCase().includes('CPA'));
+            const selectedObjs = this.accounts.filter(acc => this.selectedAccounts.includes(acc.email));
+            const targetAccounts = selectedObjs.filter(acc => !acc.push_platform || !acc.push_platform.toUpperCase().includes('CPA'));
 
             if (targetAccounts.length === 0) {
                 this.showToast("⚠️ 选中的账号都已推送过 CPA，无需重复推送！", "warning");
@@ -1645,7 +1652,8 @@ createApp({
                 this.showToast("🚫 请先开启 Sub2API 模式并填写参数", "warning"); return;
             }
             if (this.selectedAccounts.length === 0) return;
-            const targetAccounts = this.selectedAccounts.filter(acc => !acc.push_platform || !acc.push_platform.toUpperCase().includes('SUB2API'));
+            const selectedObjs = this.accounts.filter(acc => this.selectedAccounts.includes(acc.email));
+            const targetAccounts = selectedObjs.filter(acc => !acc.push_platform || !acc.push_platform.toUpperCase().includes('SUB2API'));
 
             if (targetAccounts.length === 0) {
                 this.showToast("⚠️ 选中的账号都已推送过 Sub2API，无需重复推送！", "warning");
@@ -1681,7 +1689,8 @@ createApp({
                 this.showToast("🚫 请先开启 Image2API 模式并填写参数", "warning"); return;
             }
             if (this.selectedAccounts.length === 0) return;
-            const targetAccounts = this.selectedAccounts.filter(acc => !acc.push_platform || !acc.push_platform.toUpperCase().includes('IMAGE2API'));
+            const selectedObjs = this.accounts.filter(acc => this.selectedAccounts.includes(acc.email));
+            const targetAccounts = selectedObjs.filter(acc => !acc.push_platform || !acc.push_platform.toUpperCase().includes('IMAGE2API'));
 
             if (targetAccounts.length === 0) {
                 this.showToast("⚠️ 选中的账号都已推送过 Image2API，无需重复推送！", "warning");
@@ -2416,9 +2425,7 @@ createApp({
                 return;
             }
             try {
-                const emailsToExport = this.selectedAccounts.map(item =>
-                    typeof item === 'object' ? item.email : item
-                );
+                const emailsToExport = this.selectedAccounts;
 
                 const response = await this.authFetch('/api/accounts/export_sub2api', {
                     method: 'POST',
@@ -2622,7 +2629,10 @@ createApp({
                 return this.showToast('请先勾选需要操作的账号', 'warning');
             }
             if (action === 'delete' && !confirm(`⚠️ 危险操作：确认删除选中的 ${this.selectedCloud.length} 个账号吗？`)) return;
-
+            const actionAccounts = this.selectedCloud.map(key => {
+                const [id, type] = key.split('|');
+                return { id: String(id), type: type };
+            });
             const actionName = action === 'check' ? '测活' : (action === 'enable' ? '启用' : (action === 'disable' ? '禁用' : (action === 'refresh' ? '刷新凭证' : '删除')));
             this.showToast(`正在批量 ${actionName} ${this.selectedCloud.length} 个账号，耗时较长请耐心等待...`, 'info');
             this.isCloudActionLoading = true;
@@ -2630,11 +2640,11 @@ createApp({
             try {
                 const res = await this.authFetch('/api/cloud/action', {
                     method: 'POST',
-                    body: JSON.stringify({ accounts: this.selectedCloud, action: action })
+                    body: JSON.stringify({ accounts: actionAccounts, action: action })
                 });
                 const result = await res.json();
                 if (result.updated_details) {
-                    this.selectedCloud.forEach(selected => {
+                    actionAccounts.forEach(selected => {
                         const targetAcc = this.cloudAccounts.find(a => String(a.id) === String(selected.id) && a.account_type === selected.type);
                         if (targetAcc && result.updated_details[selected.id]) {
                             targetAcc.details = Object.assign({}, targetAcc.details, result.updated_details[selected.id]);
@@ -2643,8 +2653,8 @@ createApp({
                     });
                 }
                 if (action === 'check') {
-            const now = formatMainlandDateTime(new Date());
-                    this.selectedCloud.forEach(c => { this.localCheckTimes[c.id] = now; });
+                    const now = formatMainlandDateTime(new Date());
+                    actionAccounts.forEach(c => { this.localCheckTimes[c.id] = now; });
                 }
 
                 this.showToast(result.message, result.status);
@@ -2656,12 +2666,9 @@ createApp({
                 this.isCloudActionLoading = false;
             }
         },
-        toggleAllCloud(e) {
-            if (e.target.checked) {
-                this.selectedCloud = this.filteredCloud.map(a => ({ id: String(a.id), type: a.account_type }));
-            } else {
-                this.selectedCloud = [];
-            }
+        toggleAll(event) {
+            if (event.target.checked) this.selectedAccounts = this.filteredAccounts.map(a => a.email);
+            else this.selectedAccounts = [];
         },
         viewCloudDetails(acc) {
             if (!acc.details || Object.keys(acc.details).length === 0) {
@@ -2910,7 +2917,7 @@ createApp({
                             this.isRunning = false;
                             window.postMessage({ type: "CMD_STOP_WORKER" }, "*");
 
-            const timeStr = formatMainlandTime(new Date());
+                        const timeStr = formatMainlandTime(new Date());
                             this.logs.push({
                                 parsed: true, time: timeStr, level: '总控',
                                 text: `🛑 目标产量已达成，总控引擎已自动挂起。`,
@@ -2992,7 +2999,7 @@ createApp({
             this.fetchMailboxes();
         },
         toggleAllMailboxes(event) {
-            if (event.target.checked) this.selectedMailboxes = [...this.filteredMailboxes];
+            if (event.target.checked) this.selectedMailboxes = this.filteredMailboxes.map(m => m.email);
             else this.selectedMailboxes = [];
         },
         async submitImportMailboxes() {
@@ -3022,16 +3029,17 @@ createApp({
             if (this.selectedMailboxes.length === 0) return;
             const confirmed = await this.customConfirm(`确定要删除选中的 ${this.selectedMailboxes.length} 个邮箱吗？`);
             if (!confirmed) return;
-
-            const idsToDelete = this.selectedMailboxes.map(m => m.id || m.email);
+            const selectedObjs = this.mailboxes.filter(m => this.selectedMailboxes.includes(m.email));
+            const idsToDelete = selectedObjs.map(m => m.id || m.email);
             try {
                 const res = await this.authFetch('/api/mailboxes/delete', {
                     method: 'POST',
-                    body: JSON.stringify({ ids: idsToDelete })
+                    body: JSON.stringify({ids: idsToDelete})
                 });
                 const data = await res.json();
                 if (data.status === 'success') {
                     this.showToast("删除成功", "success");
+                    this.selectedMailboxes = []
                     this.fetchMailboxes();
                 } else {
                     this.showToast("删除失败: " + data.message, "error");
@@ -3040,7 +3048,8 @@ createApp({
                 this.showToast("请求异常", "error");
             }
         },
-        openOutlookAuthModal(mailbox) {
+        openOutlookAuthModal(mailbox)
+        {
             const cid = mailbox.client_id || this.config?.local_microsoft?.client_id || this.BUILTIN_CLIENT_ID;
             if (!cid) {
                 this.showToast("🚫 无法获取有效的 Client ID！", "warning");
@@ -3052,7 +3061,6 @@ createApp({
             this.outlookAuth.pastedUrl = '';
             this.outlookAuth.showModal = true;
         },
-
         async generateOutlookAuthUrl() {
             this.outlookAuth.isGenerating = true;
             try {
@@ -3123,7 +3131,8 @@ createApp({
                 this.showToast("请先勾选需要导出的邮箱", "warning");
                 return;
             }
-            const textContent = this.selectedMailboxes
+            const selectedObjs = this.mailboxes.filter(m => this.selectedMailboxes.includes(m.email));
+            const textContent = selectedObjs
                 .map(m => {
                     const pwd = m.password || '';
                     const cid = m.client_id || '';
@@ -3157,7 +3166,7 @@ createApp({
             const confirmed = await this.customConfirm(`确定要将选中的 ${this.selectedMailboxes.length} 个邮箱状态重置为【正常/闲置】吗？\n(可用于解除死号误标)`);
             if (!confirmed) return;
 
-            const emailsToRecover = this.selectedMailboxes.map(m => m.email);
+            const emailsToRecover = this.selectedMailboxes;
 
             try {
                 const res = await this.authFetch('/api/mailboxes/update_status', {
@@ -3483,7 +3492,7 @@ createApp({
             this.showToast(`🚀 正在后端并发刷新 ${this.selectedAccounts.length} 个账号，请稍候...`, 'info');
             this.currentTab = 'console';
             try {
-                const emails = this.selectedAccounts.map(acc => acc.email);
+                const emails = this.selectedAccounts;
                 const res = await this.authFetch('/api/accounts/bulk_refresh', {
                     method: 'POST',
                     body: JSON.stringify({ emails: emails })
