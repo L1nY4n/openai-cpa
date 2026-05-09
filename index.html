@@ -3697,15 +3697,15 @@
 
                                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                                     <div class="bg-white p-4 rounded-xl border border-cyan-100 shadow-sm">
-                                        <div class="text-[11px] text-slate-500 font-black uppercase tracking-wider mb-2">当前 RSS</div>
+                                        <div class="text-[11px] text-slate-500 font-black uppercase tracking-wider mb-2">当前消耗内存 RSS</div>
                                         <div class="text-2xl font-black text-cyan-700">{{ formatMemoryMb(memoryPrediction?.actual?.rss_mb ?? stats.memory?.rss_mb) }}</div>
                                     </div>
                                     <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                                        <div class="text-[11px] text-slate-500 font-black uppercase tracking-wider mb-2">预测中标</div>
+                                        <div class="text-[11px] text-slate-500 font-black uppercase tracking-wider mb-2">预测中等负载</div>
                                         <div class="text-2xl font-black text-slate-700">{{ formatMemoryMb(memoryPrediction?.prediction?.predicted_mb?.mid ?? stats.memory?.predicted_mid_mb) }}</div>
                                     </div>
                                     <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                                        <div class="text-[11px] text-slate-500 font-black uppercase tracking-wider mb-2">预测高标</div>
+                                        <div class="text-[11px] text-slate-500 font-black uppercase tracking-wider mb-2">预测满载峰值</div>
                                         <div class="text-2xl font-black text-slate-700">{{ formatMemoryMb(memoryPrediction?.prediction?.predicted_mb?.high ?? stats.memory?.predicted_high_mb) }}</div>
                                     </div>
                                     <div class="bg-white p-4 rounded-xl border shadow-sm" :class="memorySafetyClass(memoryPrediction?.safety?.level ?? stats.memory?.safety_level)">
@@ -3718,9 +3718,9 @@
                                     <div class="lg:col-span-2 bg-slate-50/80 p-5 rounded-2xl border border-slate-200 shadow-inner">
                                         <div class="text-xs font-black text-slate-600 uppercase tracking-wider mb-4">预测分解</div>
                                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-                                            <div class="bg-white rounded-xl p-3 border border-slate-200"><span class="block text-[10px] text-slate-400 font-black uppercase mb-1">低标</span><span class="font-black text-slate-700">{{ formatMemoryMb(memoryPrediction?.prediction?.predicted_mb?.low) }}</span></div>
-                                            <div class="bg-white rounded-xl p-3 border border-slate-200"><span class="block text-[10px] text-slate-400 font-black uppercase mb-1">中标</span><span class="font-black text-slate-700">{{ formatMemoryMb(memoryPrediction?.prediction?.predicted_mb?.mid) }}</span></div>
-                                            <div class="bg-white rounded-xl p-3 border border-slate-200"><span class="block text-[10px] text-slate-400 font-black uppercase mb-1">高标</span><span class="font-black text-slate-700">{{ formatMemoryMb(memoryPrediction?.prediction?.predicted_mb?.high) }}</span></div>
+                                            <div class="bg-white rounded-xl p-3 border border-slate-200"><span class="block text-[10px] text-slate-400 font-black uppercase mb-1">最低消耗</span><span class="font-black text-slate-700">{{ formatMemoryMb(memoryPrediction?.prediction?.predicted_mb?.low) }}</span></div>
+                                            <div class="bg-white rounded-xl p-3 border border-slate-200"><span class="block text-[10px] text-slate-400 font-black uppercase mb-1">标准负载</span><span class="font-black text-slate-700">{{ formatMemoryMb(memoryPrediction?.prediction?.predicted_mb?.mid) }}</span></div>
+                                            <div class="bg-white rounded-xl p-3 border border-slate-200"><span class="block text-[10px] text-slate-400 font-black uppercase mb-1">满载峰值</span><span class="font-black text-slate-700">{{ formatMemoryMb(memoryPrediction?.prediction?.predicted_mb?.high) }}</span></div>
                                         </div>
                                         <p class="text-xs text-slate-500 leading-relaxed font-medium">{{ memoryPrediction?.safety?.message || memoryPrediction?.prediction?.model_note || '切换到本页后会自动获取完整预测数据。' }}</p>
                                         <p v-if="memoryPrediction?.actual?.note" class="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 mt-3 font-bold">{{ memoryPrediction.actual.note }}</p>
@@ -3728,13 +3728,13 @@
                                     <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                                         <div class="text-xs font-black text-slate-600 uppercase tracking-wider mb-4">配置快照</div>
                                         <div class="space-y-2 text-xs font-bold text-slate-600">
-                                            <div class="flex justify-between gap-3"><span>REG Threads</span><span class="text-cyan-700">{{ memoryPrediction?.prediction?.config_snapshot?.reg_threads ?? config.reg_threads }}</span></div>
-                                            <div class="flex justify-between gap-3"><span>CPA Threads</span><span class="text-cyan-700">{{ memoryPrediction?.prediction?.config_snapshot?.cpa_threads ?? config.cpa_mode?.threads }}</span></div>
-                                            <div class="flex justify-between gap-3"><span>Sub2API Threads</span><span class="text-cyan-700">{{ memoryPrediction?.prediction?.config_snapshot?.sub2api_threads ?? config.sub2api_mode?.threads }}</span></div>
-                                            <div class="flex justify-between gap-3"><span>Proxy Pool</span><span class="text-cyan-700">{{ memoryPrediction?.prediction?.config_snapshot?.proxy_pool_size ?? 'N/A' }}</span></div>
-                                            <div class="flex justify-between gap-3"><span>Max Logs</span><span class="text-cyan-700">{{ memoryPrediction?.prediction?.config_snapshot?.max_log_lines ?? config.max_log_lines }}</span></div>
-                                            <div class="flex justify-between gap-3"><span>DB Type</span><span class="text-cyan-700 uppercase">{{ memoryPrediction?.prediction?.config_snapshot?.db_type ?? config.database?.type }}</span></div>
-                                            <div class="flex justify-between gap-3"><span>系统使用率</span><span class="text-cyan-700">{{ memoryPrediction?.actual?.system_used_percent ?? 'N/A' }}%</span></div>
+                                            <div class="flex justify-between gap-3"><span>注册并发线程</span><span class="text-cyan-700">{{ memoryPrediction?.prediction?.config_snapshot?.reg_threads ?? config.reg_threads }}</span></div>
+                                            <div class="flex justify-between gap-3"><span>CPA 测活并发</span><span class="text-cyan-700">{{ memoryPrediction?.prediction?.config_snapshot?.cpa_threads ?? config.cpa_mode?.threads }}</span></div>
+                                            <div class="flex justify-between gap-3"><span>Sub2API 并发</span><span class="text-cyan-700">{{ memoryPrediction?.prediction?.config_snapshot?.sub2api_threads ?? config.sub2api_mode?.threads }}</span></div>
+                                            <div class="flex justify-between gap-3"><span>代理池载入规模</span><span class="text-cyan-700">{{ memoryPrediction?.prediction?.config_snapshot?.proxy_pool_size ?? 'N/A' }}</span></div>
+                                            <div class="flex justify-between gap-3"><span>控制台日志行数</span><span class="text-cyan-700">{{ memoryPrediction?.prediction?.config_snapshot?.max_log_lines ?? config.max_log_lines }}</span></div>
+                                            <div class="flex justify-between gap-3"><span>数据库连接类型</span><span class="text-cyan-700 uppercase">{{ memoryPrediction?.prediction?.config_snapshot?.db_type ?? config.database?.type }}</span></div>
+                                            <div class="flex justify-between gap-3"><span>系统物理内存使用率</span><span class="text-cyan-700">{{ memoryPrediction?.actual?.system_used_percent ?? 'N/A' }}%</span></div>
                                         </div>
                                     </div>
                                 </div>

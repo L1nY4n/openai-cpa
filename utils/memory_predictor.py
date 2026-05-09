@@ -1,17 +1,8 @@
-"""Memory usage prediction and runtime measurement helpers.
-
-This module intentionally keeps psutil optional at import time so the web
-console can still boot in older deployments. When psutil is installed, the
-API returns actual RSS/VMS/percent information in addition to the static
-prediction model.
-"""
-
 import os
 import platform
 import sys
 import time
-from typing import Any, Dict, Iterable
-
+from typing import Any, Dict, Iterable, Union, Optional
 
 MB = 1024 * 1024
 
@@ -76,7 +67,7 @@ def _mail_domain_count(config: Dict[str, Any]) -> int:
     return _list_len(domains)
 
 
-def predict_memory_usage(config: Dict[str, Any] | None = None) -> Dict[str, Any]:
+def predict_memory_usage(config: Union[Dict[str, Any], None] = None) -> Dict[str, Any]:
     """Estimate low/mid/high memory usage in MB from current configuration."""
     config = config or {}
     os_name = platform.system() or sys.platform
@@ -159,7 +150,7 @@ def predict_memory_usage(config: Dict[str, Any] | None = None) -> Dict[str, Any]
             "db_type": db_type,
             "cluster_enabled": cluster_enabled,
         },
-        "model_note": "估算值用於容量預警；實際 RSS 仍會因作業系統、curl/HTTP 連線、第三方套件快取而浮動。",
+        "model_note": "估算值用于容量预警；实际 RSS 仍会因操作系统、curl/HTTP 连接、第三方包缓存而波动。",
     }
 
 
@@ -175,7 +166,7 @@ def get_actual_memory_usage() -> Dict[str, Any]:
             "percent": None,
             "system_total_mb": None,
             "system_available_mb": None,
-            "note": f"未安裝 psutil，僅提供靜態預測。請安裝 psutil 以取得實測 RSS。({exc})",
+            "note": f"未安裝 psutil，仅提供静态预测。請安裝 psutil 以获取实测 RSS。({exc})",
         }
 
     process = psutil.Process(os.getpid())
@@ -204,26 +195,26 @@ def estimate_safety_status(prediction: Dict[str, Any], actual: Dict[str, Any]) -
     if rss is None:
         return {
             "level": "unknown",
-            "label": "無實測資料",
-            "message": "psutil 不可用，目前只能查看靜態預測。",
+            "label": "未知",
+            "message": "psutil 不可用，目前只能查看静态预测。",
         }
 
     level = "ok"
     label = "正常"
-    message = "目前 RSS 位於預測區間內。"
+    message = "目前实测 RSS 位于预测区间内。"
 
     if system_total and rss > float(system_total) * 0.8:
         level = "critical"
-        label = "危險"
-        message = "目前進程 RSS 已超過系統記憶體 80%，建議立即降低併發或重啟釋放資源。"
+        label = "危险"
+        message = "目前进程 RSS 已超过系统总内存的 80%，建议立即降低并发或重启程序以释放资源。"
     elif high and rss > high * 1.2:
         level = "warning"
         label = "偏高"
-        message = "目前 RSS 明顯高於高標預測，可能存在連線快取、第三方套件快取或長時間運行累積。"
+        message = "目前实测 RSS 明显高于高标预测值，可能存在连接池堆积或长时间运行产生的内存碎片。"
     elif mid and rss > mid:
         level = "watch"
-        label = "觀察"
-        message = "目前 RSS 高於中標預測但仍未超出高標太多，建議持續觀察。"
+        label = "观察"
+        message = "目前实测 RSS 高于中等预测值，建议观察是否随时间持续增长。"
 
     return {
         "level": level,
@@ -233,7 +224,7 @@ def estimate_safety_status(prediction: Dict[str, Any], actual: Dict[str, Any]) -
     }
 
 
-def build_memory_report(config: Dict[str, Any] | None = None) -> Dict[str, Any]:
+def build_memory_report(config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     prediction = predict_memory_usage(config or {})
     actual = get_actual_memory_usage()
     safety = estimate_safety_status(prediction, actual)
