@@ -204,7 +204,8 @@ createApp({
                 target: 'all',
                 count: 5,
                 instances: [],
-                groups: []
+                groups: [],
+                isDeploying: false
             },
             gmail_oauth_mode: {
                 master_email: '',
@@ -2837,7 +2838,7 @@ createApp({
                 if (d.status === 'success') {
                     this.clashPool.instances = d.data.instances;
                     this.clashPool.groups = d.data.groups;
-                    if (this.clashPool.instances.length > 0) {
+                    if (this.clashPool.instances.length > 0 && !this.clashPool.isDeploying) {
                         this.clashPool.count = this.clashPool.instances.length;
                     }
                 }
@@ -2846,6 +2847,7 @@ createApp({
         },
         async handleClashDeploy() {
             this.showToast('正在调整实例规模...', 'info');
+            this.clashPool.isDeploying = true;
             try {
                 const res = await this.authFetch('/api/clash/deploy', {
                     method: 'POST',
@@ -2853,8 +2855,18 @@ createApp({
                 });
                 const d = await res.json();
                 this.showToast(d.message, d.status);
-                this.fetchClashPool();
-            } catch (e) { this.showToast('网络错误', 'error'); }
+                if (d.status === 'success') {
+                    setTimeout(() => {
+                        this.fetchClashPool();
+                        this.clashPool.isDeploying = false;
+                    }, 5000);
+                } else {
+                    this.clashPool.isDeploying = false;
+                }
+            } catch (e) {
+                this.showToast('网络错误', 'error');
+                this.clashPool.isDeploying = false;
+            }
         },
         async handleClashUpdate() {
             if (!this.clashPool.subUrl) return this.showToast('请输入订阅链接', 'error');
@@ -2866,7 +2878,11 @@ createApp({
                 });
                 const d = await res.json();
                 this.showToast(d.message, d.status);
-                this.fetchClashPool();
+                if (d.status === 'success') {
+                    setTimeout(() => {
+                        this.fetchClashPool();
+                    }, 5000);
+                }
             } catch (e) { this.showToast('网络错误', 'error'); }
             this.clashPool.loading = false;
         },

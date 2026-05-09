@@ -381,6 +381,8 @@ def try_verify_phone_via_fivesim(session: requests.Session, *, proxies: Any, hin
 
     try:
         service_code = str(getattr(cfg, 'FIVESIM_SERVICE', 'openai')).strip()
+        if not service_code:
+            service_code = "openai"
         pref_country = str(getattr(cfg, 'FIVESIM_COUNTRY', 'any')).strip()
         excluded = set()
         last_reason = "验证失败"
