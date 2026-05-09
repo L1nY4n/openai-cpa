@@ -611,7 +611,6 @@ createApp({
         applyLanguage(translateDom = true) {
             APP_LOCALE = this.currentLanguage;
             localStorage.setItem(LANGUAGE_STORAGE_KEY, this.currentLanguage);
-            document.documentElement.lang = this.currentLanguage;
             document.title = this.t('Wenfxl 注册管理系统');
             if (translateDom) {
                 this.$nextTick(() => this.applyLanguageToDom());
@@ -673,16 +672,37 @@ createApp({
         startLanguageObserver() {
             if (this.languageObserver) this.languageObserver.disconnect();
             this.languageObserver = new MutationObserver((mutations) => {
-                if (this.currentLanguage !== TRADITIONAL_LANGUAGE) return;
                 mutations.forEach((mutation) => {
-                    mutation.addedNodes.forEach((node) => this.applyLanguageToDom(node));
-                    if (mutation.type === 'attributes') this.applyLanguageToDom(mutation.target);
+                    if (mutation.type === 'childList') {
+                        if (this.currentLanguage === TRADITIONAL_LANGUAGE) {
+                            mutation.addedNodes.forEach((node) => this.applyLanguageToDom(node));
+                        }
+                    }
+                    else if (mutation.type === 'attributes') {
+                        if (this.currentLanguage === TRADITIONAL_LANGUAGE) {
+                            this.applyLanguageToDom(mutation.target);
+                        }
+                    }
+                    else if (mutation.type === 'characterData') {
+                        const node = mutation.target;
+                        const currentText = node.nodeValue;
+                        if (!currentText || !currentText.trim()) return;
+
+                        const originalText = I18N_ORIGINAL_TEXT_NODES.get(node);
+                        const expectedTranslation = translateText(originalText, this.currentLanguage);
+                        if (currentText === expectedTranslation) return;
+                        I18N_ORIGINAL_TEXT_NODES.set(node, currentText);
+                        if (this.currentLanguage === TRADITIONAL_LANGUAGE) {
+                            this.applyLanguageToDom(node);
+                        }
+                    }
                 });
             });
             this.languageObserver.observe(document.body, {
                 childList: true,
                 subtree: true,
                 attributes: true,
+                characterData: true,
                 attributeFilter: ['placeholder', 'title', 'aria-label', 'alt']
             });
         },
