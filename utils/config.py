@@ -313,6 +313,7 @@ SMSBOWER_MIN_BALANCE = 0.0
 SMSBOWER_MAX_TRIES = 3
 SMSBOWER_POLL_TIMEOUT_SEC = 180
 SMSBOWER_MIN_PRICE = 0.05
+SMSBOWER_OPERATOR = ""
 
 # 5SIM
 FIVESIM_ENABLED = False
@@ -327,6 +328,7 @@ FIVESIM_MIN_PRICE = 0.0
 FIVESIM_MIN_BALANCE = 10.0
 FIVESIM_MAX_TRIES = 3
 FIVESIM_POLL_TIMEOUT_SEC = 180
+FIVESIM_OPERATOR = ""
 
 NORMAL_SLEEP_MIN: int = 5
 NORMAL_SLEEP_MAX: int = 30
@@ -454,11 +456,11 @@ def reload_all_configs(new_config_dict=None):
     global GMAIL_OAUTH_SUFFIX_MODE, GMAIL_OAUTH_SUFFIX_LEN_MIN, GMAIL_OAUTH_SUFFIX_LEN_MAX
     global DISABLE_FORCED_TAKEOVER
     global SMSBOWER_ENABLED, SMSBOWER_API_KEY, SMSBOWER_BASE_URL, SMSBOWER_COUNTRY, SMSBOWER_SERVICE
-    global SMSBOWER_AUTO_PICK_COUNTRY, SMSBOWER_VERIFY_ON_REGISTER, SMSBOWER_REUSE_PHONE
+    global SMSBOWER_AUTO_PICK_COUNTRY, SMSBOWER_VERIFY_ON_REGISTER, SMSBOWER_REUSE_PHONE, SMSBOWER_OPERATOR
     global SMSBOWER_MAX_PRICE, SMSBOWER_MIN_BALANCE, SMSBOWER_MAX_TRIES, SMSBOWER_POLL_TIMEOUT_SEC, SMSBOWER_MIN_PRICE
     global FIVESIM_ENABLED, FIVESIM_API_KEY, FIVESIM_SERVICE, FIVESIM_COUNTRY
     global FIVESIM_AUTO_PICK_COUNTRY, FIVESIM_VERIFY_ON_REGISTER, FIVESIM_REUSE_PHONE
-    global FIVESIM_MAX_PRICE, FIVESIM_MIN_PRICE, FIVESIM_MIN_BALANCE
+    global FIVESIM_MAX_PRICE, FIVESIM_MIN_PRICE, FIVESIM_MIN_BALANCE, FIVESIM_OPERATOR
     global FIVESIM_MAX_TRIES, FIVESIM_POLL_TIMEOUT_SEC
     global SMSBOWER_REUSE_PHONE, SMSBOWER_REUSE_MAX
     global HERO_SMS_REUSE_PHONE, HERO_SMS_REUSE_MAX
@@ -802,6 +804,7 @@ def reload_all_configs(new_config_dict=None):
     SMSBOWER_POLL_TIMEOUT_SEC = safe_int(_smsbower.get("poll_timeout_sec", 120), default=120)
     SMSBOWER_MIN_PRICE = safe_float(_smsbower.get("min_price", 0.05), default=0.05)
     SMSBOWER_REUSE_MAX = safe_int(_smsbower.get("reuse_max", 2), default=2)
+    SMSBOWER_OPERATOR = str(_smsbower.get("operator", ) or "").strip()
 
     _fivesim = _c.get("fivesim", {})
     FIVESIM_ENABLED = safe_bool(_fivesim.get("enabled", False), default=False)
@@ -817,6 +820,7 @@ def reload_all_configs(new_config_dict=None):
     FIVESIM_MAX_TRIES = safe_int(_fivesim.get("max_tries", 3), default=3)
     FIVESIM_POLL_TIMEOUT_SEC = safe_int(_fivesim.get("poll_timeout_sec", 180), default=180)
     FIVESIM_REUSE_MAX = safe_int(_fivesim.get("reuse_max", 2), default=2)
+    FIVESIM_OPERATOR = str(_fivesim.get("operator", ) or "").strip()
 
 
     _ai = _c.get("ai_service", {})
