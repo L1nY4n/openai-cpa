@@ -279,9 +279,9 @@ createApp({
             }
         }
     },
-    mounted() {
+    async mounted() {
         this.applyTheme();
-        this.fetchSystemVersion();
+        await this.fetchSystemVersion();
         if (this.isLoggedIn) {
             this.initApp();
         }
@@ -1925,6 +1925,7 @@ createApp({
             }
         },
         async checkUpdate(isManual = false) {
+            if (this.appVersion === '检查中...' || !this.appVersion) return;
             try {
                 const res = await this.authFetch(`/api/system/check_update?current_version=${this.appVersion}`);
                 const data = await res.json();
