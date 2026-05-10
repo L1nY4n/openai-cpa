@@ -5,7 +5,7 @@
 # https://github.com/s12ryt/mail-curl
 
 reg_mode: "protocol"
-# 可选值: "imap" / "freemail" / "cloudflare_temp_email" / "cloudmail" / "mail_curl" / "luckmail"
+# 可选值: "imap" / "freemail" / "cloudflare_temp_email" / "cloudmail" / "mail_curl" / "luckmail" / "wwwaasa"
 email_api_mode: "cloudflare_temp_email"
 
 # [基础配置: cloudflare_temp_email / imap / cloudmail 共享]
@@ -100,6 +100,32 @@ mail_curl:
   #访问链接
   api_base: "https://your-domain.com"
   key: "" # 你的密钥
+
+# [模式 "wwwaasa" 专属配置]
+wwwaasa:
+  # 平台地址
+  api_url: "https://mail.wwwaasa.top"
+  # API Token 管理里创建的 Token，用于读取验证码和邮箱列表
+  api_token: ""
+  # 以下账号密码仅用于自动生成临时邮箱；如关闭 create_on_demand，可留空并预先在平台生成邮箱
+  username: ""
+  password: ""
+  # 会员中心“选择托管邮箱”下拉框里的资源 ID，例如 10
+  gmail_account_id: ""
+  # 多个托管邮箱资源 ID 用逗号分隔时，适配器会按顺序轮询创建，例如 "10,9"；网页端可刷新后台资源后多选生成
+  gmail_account_ids: ""
+  # plus / dot / domain / all；用于注册 OpenAI 推荐 domain
+  alias_type: "domain"
+  # wait_code/get_codes 的来源筛选；留空则不筛选来源
+  source: "OpenAI"
+  # 平台长轮询超时，范围 3-30 秒
+  wait_timeout: 20
+  # true 表示每次注册前自动生成一个新临时邮箱
+  create_on_demand: true
+  # 预生成邮箱耗尽且不自动生成时，是否允许从头复用
+  cycle: true
+  # 注册最终失败时自动停用本次使用的临时邮箱别名，减少占用
+  disable_failed_alias: true
 
 # [DuckMail 鸭子邮箱配置]
 duckmail:

@@ -577,7 +577,7 @@ def get_inventory_stats() -> dict:
         with get_db_conn() as conn:
             c = get_cursor(conn)
             sql = """
-                            SELECT 
+                            SELECT
                                 COUNT(1) as total,
                                 SUM(CASE WHEN (push_platform IS NOT NULL AND push_platform != '') AND is_active = 1 THEN 1 ELSE 0 END) as active_count,
                                 SUM(CASE WHEN (push_platform IS NOT NULL AND push_platform != '') AND is_active = 0 THEN 1 ELSE 0 END) as disabled_count,

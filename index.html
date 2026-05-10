@@ -844,6 +844,7 @@
                                     <option value="freemail">freemail</option>
                                     <option value="cloudmail">cloudmail</option>
                                     <option value="mail_curl">mail_curl</option>
+                                    <option value="wwwaasa">wwwaasa mail</option>
                                     <option value="luckmail">luckmail (LuckMail 接码)</option>
                                     <option value="tempmail">Tempmail.lol</option>
                                     <option value="tempmail_org">tempmail_org</option>
@@ -1048,7 +1049,7 @@
                                                                     <div v-if="!item.is_disabled && (item.cooldown_remaining_sec || 0) > 0" class="text-[11px] font-bold text-amber-600">冷却中 {{ formatDuration(item.cooldown_remaining_sec || 0) }}</div>
                                                                 </div>
                                                                 <div class="text-[11px] text-slate-400 mt-1">
-                                                        最近使用: {{ item.last_used_at ? formatMainlandDateTime(new Date(item.last_used_at * 1000)) : '未使用' }}
+                                                                    最近使用: {{ item.last_used_at ? formatMainlandDateTime(new Date(item.last_used_at * 1000)) : '未使用' }}
                                                                 </div>
                                                                 <div v-if="isMailDomainRuntimePristine(item)" class="text-[11px] text-sky-500 mt-1 font-medium">
                                                                     尚未参与运行，等待首次分配。
@@ -1602,6 +1603,105 @@
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
                                                 </svg>
                                             </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div v-if="config.email_api_mode === 'wwwaasa' && config.wwwaasa" class="animate-fade-in space-y-4">
+                                    <div class="flex items-center gap-2 mb-4">
+                                        <span class="text-xs font-black text-amber-800 bg-amber-100 px-3 py-1.5 rounded-md border border-amber-200 shadow-sm uppercase tracking-wider">当前模式</span>
+                                        <span class="text-sm font-black text-slate-700">wwwaasa mail</span>
+                                    </div>
+                                    <div class="text-xs text-emerald-800 font-bold bg-emerald-50 border border-emerald-200 p-4 rounded-xl leading-relaxed shadow-sm">
+                                        <p class="flex items-center gap-1.5 text-sm"><span><svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg></span> 使用平台 API Token 收取验证码，可选用账号密码自动生成临时邮箱。</p>
+                                        <p class="mt-2 text-emerald-700 opacity-90">mail_domains 不参与此模式；填写多个托管资源 ID 后，适配器会在 wwwaasa 平台资源之间轮询创建邮箱。</p>
+                                    </div>
+                                    <div>
+                                        <label class="block text-slate-700 text-xs font-extrabold mb-1.5 uppercase tracking-wider">API Token</label>
+                                        <div class="relative">
+                                            <input :type="showPwd.wwwaasa_token ? 'text' : 'password'" v-model="config.wwwaasa.api_token"
+                                                   class="w-full appearance-none bg-white border border-slate-200 text-slate-700 rounded-lg py-2.5 px-3 pr-10 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors shadow-sm font-mono text-sm">
+                                            <button type="button" @click="showPwd.wwwaasa_token = !showPwd.wwwaasa_token" class="absolute right-3 top-1/2 -translate-y-1/2 text-lg text-slate-400 hover:text-indigo-600 focus:outline-none transition-transform hover:scale-110">
+                                                <svg v-if="showPwd.wwwaasa_token" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                                <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 012.67-3.835m2.89-2.89A9.97 9.97 0 0112 5c4.478 0 8.268 2.943 9.542 7a10.05 10.05 0 01-1.875 3.175m-2.89 2.89l-1.414-1.414M12 15a3 3 0 100-6 3 3 0 000 6z"></path></svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-slate-700 text-xs font-extrabold mb-1.5 uppercase tracking-wider">账号</label>
+                                            <input type="text" v-model="config.wwwaasa.username" class="w-full appearance-none bg-white border border-slate-200 text-slate-700 rounded-lg py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors shadow-sm font-mono text-sm">
+                                        </div>
+                                        <div>
+                                            <label class="block text-slate-700 text-xs font-extrabold mb-1.5 uppercase tracking-wider">密码</label>
+                                            <div class="relative">
+                                                <input :type="showPwd.wwwaasa_password ? 'text' : 'password'" v-model="config.wwwaasa.password" class="w-full appearance-none bg-white border border-slate-200 text-slate-700 rounded-lg py-2.5 px-3 pr-10 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors shadow-sm font-mono text-sm">
+                                                <button type="button" @click="showPwd.wwwaasa_password = !showPwd.wwwaasa_password" class="absolute right-3 top-1/2 -translate-y-1/2 text-lg text-slate-400 hover:text-indigo-600 focus:outline-none transition-transform hover:scale-110">
+                                                    <svg v-if="showPwd.wwwaasa_password" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                                    <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 012.67-3.835m2.89-2.89A9.97 9.97 0 0112 5c4.478 0 8.268 2.943 9.542 7a10.05 10.05 0 01-1.875 3.175m-2.89 2.89l-1.414-1.414M12 15a3 3 0 100-6 3 3 0 000 6z"></path></svg>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div class="md:col-span-3 space-y-3">
+                                            <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+                                                <div>
+                                                    <label class="block text-slate-700 text-xs font-extrabold mb-1.5 uppercase tracking-wider">托管资源 ID 轮询列表</label>
+                                                    <p class="text-[11px] text-slate-500 font-medium">可刷新 wwwaasa 后台“选择托管邮箱”列表后勾选；手填仍支持，例如 10,9。</p>
+                                                </div>
+                                                <button type="button" @click="fetchWwwaasaResources()" :disabled="isLoadingWwwaasaResources" class="px-3 py-2 text-xs font-black rounded-lg border border-amber-200 bg-white text-amber-700 hover:bg-amber-50 disabled:opacity-60 transition-colors shadow-sm">
+                                                    {{ isLoadingWwwaasaResources ? '刷新中...' : '刷新托管资源' }}
+                                                </button>
+                                            </div>
+                                            <input type="text" v-model="config.wwwaasa.gmail_account_ids" class="w-full appearance-none bg-white border border-slate-200 text-slate-700 rounded-lg py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors shadow-sm font-mono text-sm" placeholder="例如 10,9">
+                                            <div v-if="wwwaasaResourcesError" class="text-xs text-rose-600 font-bold bg-rose-50 border border-rose-100 rounded-lg px-3 py-2">
+                                                {{ wwwaasaResourcesError }}
+                                            </div>
+                                            <div v-if="wwwaasaResources.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                <label v-for="resource in wwwaasaResources" :key="resource.id" class="flex items-start gap-3 p-3 bg-white border rounded-xl shadow-sm cursor-pointer transition-colors" :class="isWwwaasaResourceSelected(resource.id) ? 'border-amber-300 ring-2 ring-amber-100' : 'border-slate-200 hover:border-amber-200'">
+                                                    <input type="checkbox" :checked="isWwwaasaResourceSelected(resource.id)" @change="toggleWwwaasaResource(resource.id)" class="mt-1 rounded border-slate-300 text-amber-500 focus:ring-amber-500/30">
+                                                    <div class="min-w-0 flex-1">
+                                                        <div class="flex items-center gap-2 flex-wrap">
+                                                            <span class="text-sm font-black text-slate-800 break-all">{{ resource.name || resource.label || ('资源 ' + resource.id) }}</span>
+                                                            <span class="px-2 py-0.5 rounded-full text-[10px] font-black border" :class="resource.type === 'domain' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-sky-50 text-sky-700 border-sky-200'">{{ wwwaasaResourceTypeLabel(resource.type) }}</span>
+                                                        </div>
+                                                        <div class="mt-1 text-[11px] text-slate-500 font-mono">ID {{ resource.id }}</div>
+                                                        <div v-if="resource.label && resource.label !== resource.name" class="mt-1 text-[11px] text-slate-400 break-all">{{ resource.label }}</div>
+                                                    </div>
+                                                </label>
+                                            </div>
+                                            <p class="text-[11px] text-slate-500 font-medium">当前已选择 {{ selectedWwwaasaResourceCount }} 个资源；保存后适配器会按该顺序轮询创建邮箱。</p>
+                                        </div>
+                                        <div>
+                                            <label class="block text-slate-700 text-xs font-extrabold mb-1.5 uppercase tracking-wider">邮箱类型</label>
+                                            <select v-model="config.wwwaasa.alias_type" class="w-full appearance-none bg-white border border-slate-200 text-slate-700 rounded-lg py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors shadow-sm text-sm">
+                                                <option value="domain">domain</option>
+                                                <option value="plus">plus</option>
+                                                <option value="dot">dot</option>
+                                                <option value="all">all</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-slate-700 text-xs font-extrabold mb-1.5 uppercase tracking-wider">来源筛选</label>
+                                            <input type="text" v-model="config.wwwaasa.source" class="w-full appearance-none bg-white border border-slate-200 text-slate-700 rounded-lg py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors shadow-sm font-mono text-sm" placeholder="OpenAI">
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <label class="flex items-center justify-between gap-3 p-3 bg-white border border-slate-200 rounded-xl shadow-sm cursor-pointer">
+                                            <span class="text-xs font-black text-slate-700">自动生成新邮箱</span>
+                                            <input type="checkbox" v-model="config.wwwaasa.create_on_demand" class="rounded border-slate-300 text-amber-500 focus:ring-amber-500/30">
+                                        </label>
+                                        <label class="flex items-center justify-between gap-3 p-3 bg-white border border-slate-200 rounded-xl shadow-sm cursor-pointer">
+                                            <span class="text-xs font-black text-slate-700">允许循环复用</span>
+                                            <input type="checkbox" v-model="config.wwwaasa.cycle" class="rounded border-slate-300 text-amber-500 focus:ring-amber-500/30">
+                                        </label>
+                                        <label class="flex items-center justify-between gap-3 p-3 bg-white border border-slate-200 rounded-xl shadow-sm cursor-pointer">
+                                            <span class="text-xs font-black text-slate-700">失败后停用别名</span>
+                                            <input type="checkbox" v-model="config.wwwaasa.disable_failed_alias" class="rounded border-slate-300 text-amber-500 focus:ring-amber-500/30">
+                                        </label>
+                                        <div>
+                                            <label class="block text-slate-700 text-xs font-extrabold mb-1.5 uppercase tracking-wider">轮询秒数</label>
+                                            <input type="number" min="3" max="30" v-model.number="config.wwwaasa.wait_timeout" class="w-full appearance-none bg-white border border-slate-200 text-slate-700 rounded-lg py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-colors shadow-sm">
                                         </div>
                                     </div>
                                 </div>

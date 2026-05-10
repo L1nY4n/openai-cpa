@@ -875,6 +875,51 @@ def get_last_email() -> Optional[str]:
     return getattr(_thread_data, 'last_attempt_email', None)
 
 
+def get_last_email_token() -> Optional[str]:
+    return getattr(_thread_data, 'last_email_token', None)
+
+
+def set_last_email_token(token: Any) -> None:
+    _thread_data.last_email_token = token
+
+
+def disable_last_wwwaasa_alias(reason: str = "") -> bool:
+    if getattr(cfg, "EMAIL_API_MODE", "") != "wwwaasa":
+        return False
+    if not getattr(cfg, "WWWAASA_DISABLE_FAILED_ALIAS", True):
+        return False
+
+    token = get_last_email_token()
+    if not token:
+        return False
+
+    try:
+        from utils.email_providers.wwwaasa_service import WwwAasaMailService
+        service = WwwAasaMailService(
+            api_url=getattr(cfg, "WWWAASA_API_URL", ""),
+            api_token=getattr(cfg, "WWWAASA_API_TOKEN", ""),
+            username=getattr(cfg, "WWWAASA_USERNAME", ""),
+            password=getattr(cfg, "WWWAASA_PASSWORD", ""),
+            gmail_account_id=getattr(cfg, "WWWAASA_GMAIL_ACCOUNT_ID", ""),
+            gmail_account_ids=getattr(cfg, "WWWAASA_GMAIL_ACCOUNT_IDS", []),
+            alias_type=getattr(cfg, "WWWAASA_ALIAS_TYPE", "domain"),
+            source=getattr(cfg, "WWWAASA_SOURCE", "OpenAI"),
+            wait_timeout=getattr(cfg, "WWWAASA_WAIT_TIMEOUT", 20),
+            create_on_demand=getattr(cfg, "WWWAASA_CREATE_ON_DEMAND", True),
+            cycle=getattr(cfg, "WWWAASA_CYCLE", True),
+        )
+        ok, msg = service.disable_alias_from_token(str(token))
+        email = get_last_email() or ""
+        reason_text = f"，原因: {reason}" if reason else ""
+        if ok:
+            print(f"[{cfg.ts()}] [INFO] wwwaasa 已停用失败邮箱别名: {mask_email(email)}{reason_text}")
+            return True
+        print(f"[{cfg.ts()}] [WARNING] wwwaasa 停用失败邮箱别名失败: {mask_email(email)} | {msg}{reason_text}")
+    except Exception as e:
+        print(f"[{cfg.ts()}] [WARNING] wwwaasa 停用失败邮箱别名异常: {e}")
+    return False
+
+
 def _smart_sleep(secs):
     for _ in range(int(secs * 10)):
         if getattr(cfg, 'GLOBAL_STOP', False):
@@ -1000,10 +1045,42 @@ def get_email_and_token(
     """兼容五种邮箱模式的地址创建，返回 (email, token_or_id)。"""
     if getattr(cfg, 'GLOBAL_STOP', False): return None, None
     _thread_data.last_attempt_email = None
+    _thread_data.last_email_token = None
     _thread_data.last_domain_failure_event = None
 
     mode = cfg.EMAIL_API_MODE
     mail_proxies = proxies if cfg.USE_PROXY_FOR_EMAIL else None
+
+    if mode == "wwwaasa":
+        if not getattr(cfg, "WWWAASA_API_TOKEN", ""):
+            print(f"[{cfg.ts()}] [ERROR] wwwaasa 未配置 API Token，无法分配邮箱")
+            return None, None
+        try:
+            from utils.email_providers.wwwaasa_service import WwwAasaMailService
+            service = WwwAasaMailService(
+                api_url=getattr(cfg, "WWWAASA_API_URL", ""),
+                api_token=getattr(cfg, "WWWAASA_API_TOKEN", ""),
+                username=getattr(cfg, "WWWAASA_USERNAME", ""),
+                password=getattr(cfg, "WWWAASA_PASSWORD", ""),
+                gmail_account_id=getattr(cfg, "WWWAASA_GMAIL_ACCOUNT_ID", ""),
+                gmail_account_ids=getattr(cfg, "WWWAASA_GMAIL_ACCOUNT_IDS", []),
+                alias_type=getattr(cfg, "WWWAASA_ALIAS_TYPE", "domain"),
+                source=getattr(cfg, "WWWAASA_SOURCE", "OpenAI"),
+                wait_timeout=getattr(cfg, "WWWAASA_WAIT_TIMEOUT", 20),
+                create_on_demand=getattr(cfg, "WWWAASA_CREATE_ON_DEMAND", True),
+                cycle=getattr(cfg, "WWWAASA_CYCLE", True),
+                proxies=mail_proxies,
+            )
+            email, token = service.allocate_email()
+            if email and token is not None:
+                set_last_email(email)
+                set_last_email_token(token)
+                print(f"[{cfg.ts()}] [INFO] wwwaasa 成功分配邮箱: ({mask_email(email)})")
+                return email, token
+            print(f"[{cfg.ts()}] [ERROR] wwwaasa 未获取到可用邮箱，请检查平台配额、资源 ID 或账号密码")
+        except Exception as e:
+            print(f"[{cfg.ts()}] [ERROR] wwwaasa 获取邮箱异常: {e}")
+        return None, None
 
     if mode == "mail_curl":
         try:
@@ -1620,7 +1697,30 @@ def get_oai_code(
     for attempt in range(max_attempts):
         if getattr(cfg, 'GLOBAL_STOP', False): return ""
         try:
-            if mode == "mail_curl":
+            if mode == "wwwaasa":
+                try:
+                    from utils.email_providers.wwwaasa_service import WwwAasaMailService
+                    service = WwwAasaMailService(
+                        api_url=getattr(cfg, "WWWAASA_API_URL", ""),
+                        api_token=getattr(cfg, "WWWAASA_API_TOKEN", ""),
+                        username=getattr(cfg, "WWWAASA_USERNAME", ""),
+                        password=getattr(cfg, "WWWAASA_PASSWORD", ""),
+                        gmail_account_id=getattr(cfg, "WWWAASA_GMAIL_ACCOUNT_ID", ""),
+                        gmail_account_ids=getattr(cfg, "WWWAASA_GMAIL_ACCOUNT_IDS", []),
+                        alias_type=getattr(cfg, "WWWAASA_ALIAS_TYPE", "domain"),
+                        source=getattr(cfg, "WWWAASA_SOURCE", "OpenAI"),
+                        wait_timeout=getattr(cfg, "WWWAASA_WAIT_TIMEOUT", 20),
+                        create_on_demand=getattr(cfg, "WWWAASA_CREATE_ON_DEMAND", True),
+                        cycle=getattr(cfg, "WWWAASA_CYCLE", True),
+                        proxies=mail_proxies,
+                    )
+                    code = service.wait_for_code(email, mailbox_id, extractor=_extract_otp_code)
+                    if code:
+                        print(f"\n[{cfg.ts()}] [SUCCESS] wwwaasa ({mask_email(email)}) 邮箱提取成功: {code}")
+                        return code
+                except Exception as e:
+                    print(f"[{cfg.ts()}] [ERROR] wwwaasa 邮箱查询异常: {e}")
+            elif mode == "mail_curl":
                 inbox_url = (f"{cfg.MC_API_BASE}/api/inbox"
                              f"?key={cfg.MC_KEY}&mailbox_id={mailbox_id}")
                 res = requests.get(inbox_url, proxies=mail_proxies,

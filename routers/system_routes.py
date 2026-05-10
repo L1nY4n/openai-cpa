@@ -356,6 +356,28 @@ async def get_config(token: str = Depends(verify_token)):
 async def get_mail_domain_runtime_stats(token: str = Depends(verify_token)):
     return {"status": "success", "items": mail_service.get_mail_domain_runtime_stats()}
 
+@router.get("/api/config/wwwaasa/resources")
+async def get_wwwaasa_resources(token: str = Depends(verify_token)):
+    try:
+        if not getattr(cfg, "WWWAASA_USERNAME", "") or not getattr(cfg, "WWWAASA_PASSWORD", ""):
+            return {"status": "error", "message": "wwwaasa 账号或密码未配置"}
+        from utils.email_providers.wwwaasa_service import WwwAasaMailService
+        service = WwwAasaMailService(
+            api_url=getattr(cfg, "WWWAASA_API_URL", ""),
+            api_token=getattr(cfg, "WWWAASA_API_TOKEN", ""),
+            username=getattr(cfg, "WWWAASA_USERNAME", ""),
+            password=getattr(cfg, "WWWAASA_PASSWORD", ""),
+            gmail_account_id=getattr(cfg, "WWWAASA_GMAIL_ACCOUNT_ID", ""),
+            gmail_account_ids=getattr(cfg, "WWWAASA_GMAIL_ACCOUNT_IDS", []),
+            alias_type=getattr(cfg, "WWWAASA_ALIAS_TYPE", "domain"),
+        )
+        ok, resources = service.get_source_mailboxes()
+        if not ok:
+            return {"status": "error", "message": str(resources)}
+        return {"status": "success", "items": resources}
+    except Exception as e:
+        return {"status": "error", "message": f"获取 wwwaasa 托管资源失败: {e}"}
+
 
 @router.post("/api/config/mail_domain_runtime_stats/clear")
 async def clear_mail_domain_runtime_stats(token: str = Depends(verify_token)):

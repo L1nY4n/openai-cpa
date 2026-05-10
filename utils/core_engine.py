@@ -650,6 +650,7 @@ def handle_registration_result(result: Any, cpa_upload: bool = False, run_ctx: d
                     cooldown_text = _format_cooldown_time(domain_result.get("cooldown_until", 0.0))
                     extra_text = f"，冷却结束时间: {cooldown_text}" if cooldown_text else ""
                     print(f"[{ts()}] [INFO] 失败域名 {mask_email(domain_result.get('domain', failure_domain or ''))} -> 异常 {domain_result.get('fail_count', 0)} / 成功 {domain_result.get('success_count', 0)} / 原因 {failure_reason}{extra_text}")
+            mail_service.disable_last_wwwaasa_alias(reason=failure_reason or "registration_failed")
             ret_status = "failed"
         if cfg.ENABLE_SUB_DOMAINS:
             mail_service.clear_sticky_domain()
