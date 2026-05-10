@@ -682,11 +682,16 @@ def handle_registration_result(result: Any, cpa_upload: bool = False, run_ctx: d
 
         # CPA 云端上传
         if cpa_upload:
-            success, up_msg = upload_to_cpa_integrated(token_data, cfg.CPA_API_URL, cfg.CPA_API_TOKEN)
-            if success:
-                print(f"[{ts()}] [SUCCESS] 补货凭证 {mask_email(account_email)} 云端上传成功！")
+            current_status = token_data.get("status", "")
+            if current_status in ["image2api", "仅注册成功"]:
+                print(f"[{ts()}] [INFO] 当前账号状态为 [{current_status}]，跳过云端同步。")
+                ret_status = "half_finished"
             else:
-                print(f"[{ts()}] [ERROR] 云端上传失败: {up_msg}")
+                success, up_msg = upload_to_cpa_integrated(token_data, cfg.CPA_API_URL, cfg.CPA_API_TOKEN)
+                if success:
+                    print(f"[{ts()}] [SUCCESS] 补货凭证 {mask_email(account_email)} 云端上传成功！")
+                else:
+                    print(f"[{ts()}] [ERROR] 云端上传失败: {up_msg}")
 
         if getattr(cfg, "LOCAL_MS_POOL_FISSION", False) and cfg.EMAIL_API_MODE == "local_microsoft":
             db_manager.update_pool_fission_result(master_email, is_blocked=False, is_raw=is_raw)
@@ -1546,10 +1551,15 @@ async def sub2api_main_loop(args, async_stop_event: asyncio.Event, executor=None
 
                     if status == "success":
                         token_dict = json.loads(result[0])
-                        if hasattr(client, "add_account"):
-                            ok, msg = client.add_account(token_dict)
-                            if ok: print(f"[{ts()}] [SUCCESS] Sub2API 补货入库成功")
-                            else: print(f"[{ts()}] [ERROR] Sub2API 补货入库失败: {msg}")
+                        current_status = token_dict.get("status", "")
+                        if current_status in ["image2api", "仅注册成功"]:
+                            print(f"[{ts()}] [INFO] 当前为 [{current_status}]，跳过云端补货推送。")
+                            return "half_finished"
+                        else:
+                            if hasattr(client, "add_account"):
+                                ok, msg = client.add_account(token_dict)
+                                if ok: print(f"[{ts()}] [SUCCESS] Sub2API 补货入库成功")
+                                else: print(f"[{ts()}] [ERROR] Sub2API 补货入库失败: {msg}")
                     return status
 
                 def _sub2api_worker(worker_index=0, assigned_domain=None, batch_id=None):

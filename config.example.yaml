@@ -300,7 +300,7 @@ image2api_mode:
   enable: false
   api_url: ""
   api_key: ""
-  retain_reg_only: true
+  retain_reg_only: false
   img_only_mode: false
 
 hero_sms:
