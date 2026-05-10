@@ -354,6 +354,9 @@ createApp({
             mailDomainRuntimeStatsError: '',
             mailDomainRuntimePanelCollapsed: normalizeBooleanLike(localStorage.getItem('mail_domain_runtime_panel_collapsed'), false),
             mailDomainRuntimeLastFetchAt: 0,
+            wwwaasaResources: [],
+            isLoadingWwwaasaResources: false,
+            wwwaasaResourcesError: '',
             blacklistStr: "",
             warpListStr: "",
             rawProxyListStr: "",
@@ -395,6 +398,8 @@ createApp({
                 temporam: false,
                 tmailor_token: false,
                 fvia_token: false,
+                wwwaasa_token: false,
+                wwwaasa_password: false,
                 subUrl: false,
                 showMailboxesPlaintext: false,
                 db_pass: false,
@@ -519,8 +524,15 @@ createApp({
             this.fetchMailboxes();
         },
         'config.email_api_mode'(nextMode) {
+            if (!this.config) return;
+            const normalizedMode = String(nextMode || '').trim();
+            if (normalizedMode === 'wwwaasa') {
+                this.fetchWwwaasaResources({ silent: true });
+            } else {
+                this.wwwaasaResourcesError = '';
+            }
             const supportedModes = ['cloudflare_temp_email', 'freemail', 'cloudmail', 'openai_cpa'];
-            if (!supportedModes.includes(String(nextMode || '').trim())) {
+            if (!supportedModes.includes(normalizedMode)) {
                 this.config.enable_mail_domain_runtime_control = false;
                 this.mailDomainRuntimeStats = [];
                 this.mailDomainRuntimeStatsError = '';
@@ -590,6 +602,9 @@ createApp({
         },
         cooldownMailDomainCount() {
             return this.mailDomainRuntimeStats.filter(item => item && !item.is_available).length;
+        },
+        selectedWwwaasaResourceCount() {
+            return this.parseWwwaasaAccountIds(this.config?.wwwaasa?.gmail_account_ids).length;
         }
     },
     methods: {
@@ -829,6 +844,9 @@ createApp({
                 this.mailDomainRuntimeStatsError = '';
                 this.mailDomainRuntimeLastFetchAt = 0;
             }
+            if (this.currentTab === 'email' && this.config?.email_api_mode === 'wwwaasa') {
+                await this.fetchWwwaasaResources({ silent: true });
+            }
             this.initSSE();
             this.fetchAccounts();
             this.fetchCloudAccounts();
@@ -1000,6 +1018,36 @@ createApp({
                 if (!this.config.fvia) {
                     this.config.fvia = { token: '' };
                 }
+                if (!this.config.wwwaasa) {
+                    this.config.wwwaasa = {
+                        api_url: 'https://mail.wwwaasa.top',
+                        api_token: '',
+                        username: '',
+                        password: '',
+                        gmail_account_id: '',
+                        gmail_account_ids: '',
+                        alias_type: 'domain',
+                        source: 'OpenAI',
+                        wait_timeout: 20,
+                        create_on_demand: true,
+                        cycle: true,
+                        disable_failed_alias: true
+                    };
+                } else {
+                    if (this.config.wwwaasa.gmail_account_id === undefined) this.config.wwwaasa.gmail_account_id = '';
+                    if (this.config.wwwaasa.gmail_account_ids === undefined) {
+                        this.config.wwwaasa.gmail_account_ids = this.config.wwwaasa.gmail_account_id || '';
+                    }
+                    if (this.config.wwwaasa.disable_failed_alias === undefined) {
+                        this.config.wwwaasa.disable_failed_alias = true;
+                    }
+                }
+                this.config.wwwaasa.gmail_account_ids = this.parseWwwaasaAccountIds(
+                    this.config.wwwaasa.gmail_account_ids || this.config.wwwaasa.gmail_account_id
+                ).join(',');
+                this.config.wwwaasa.create_on_demand = normalizeBooleanLike(this.config.wwwaasa.create_on_demand, true);
+                this.config.wwwaasa.cycle = normalizeBooleanLike(this.config.wwwaasa.cycle, true);
+                this.config.wwwaasa.disable_failed_alias = normalizeBooleanLike(this.config.wwwaasa.disable_failed_alias, true);
                 if (!this.config.tmailor) {
                     this.config.tmailor = { current_token: '' };
                 }
@@ -1098,6 +1146,77 @@ createApp({
                 if (this.config.mail_domain_fail_threshold === undefined) this.config.mail_domain_fail_threshold = 3;
                 if (this.config.mail_domain_fail_cooldown_sec === undefined) this.config.mail_domain_fail_cooldown_sec = 600;
             } catch (e) {}
+        },
+        parseWwwaasaAccountIds(value) {
+            const rawItems = Array.isArray(value) ? value : String(value || '').split(/[,;\s]+/);
+            return [...new Set(
+                rawItems
+                    .map(item => String(item || '').trim())
+                    .filter(Boolean)
+            )];
+        },
+        isWwwaasaResourceSelected(id) {
+            const resourceId = String(id || '').trim();
+            if (!resourceId) return false;
+            return this.parseWwwaasaAccountIds(this.config?.wwwaasa?.gmail_account_ids).includes(resourceId);
+        },
+        toggleWwwaasaResource(id) {
+            if (!this.config?.wwwaasa) return;
+            const resourceId = String(id || '').trim();
+            if (!resourceId) return;
+            const selected = new Set(this.parseWwwaasaAccountIds(this.config.wwwaasa.gmail_account_ids));
+            if (selected.has(resourceId)) {
+                selected.delete(resourceId);
+            } else {
+                selected.add(resourceId);
+            }
+            this.config.wwwaasa.gmail_account_ids = Array.from(selected).join(',');
+        },
+        wwwaasaResourceTypeLabel(type) {
+            const normalized = String(type || '').trim().toLowerCase();
+            if (normalized === 'domain') return '域名托管';
+            if (normalized === 'gmail') return 'Gmail 托管';
+            return normalized || '托管资源';
+        },
+        async fetchWwwaasaResources(options = {}) {
+            const { silent = false } = options;
+            if (!this.config?.wwwaasa) return;
+            this.isLoadingWwwaasaResources = true;
+            try {
+                const res = await this.authFetch('/api/config/wwwaasa/resources');
+                const data = await res.json();
+                if (data.status === 'success' && Array.isArray(data.items)) {
+                    const seen = new Set();
+                    this.wwwaasaResources = data.items
+                        .map(item => ({
+                            id: String(item?.id || '').trim(),
+                            type: String(item?.type || '').trim().toLowerCase(),
+                            name: String(item?.name || item?.label || '').trim(),
+                            label: String(item?.label || item?.name || '').trim(),
+                        }))
+                        .filter(item => {
+                            if (!item.id || seen.has(item.id)) return false;
+                            seen.add(item.id);
+                            return true;
+                        });
+                    this.wwwaasaResourcesError = '';
+                    if (!silent) {
+                        this.showToast(`已刷新 ${this.wwwaasaResources.length} 个托管资源`, 'success');
+                    }
+                } else {
+                    this.wwwaasaResourcesError = data.message || 'wwwaasa 托管资源获取失败';
+                    if (!silent) {
+                        this.showToast(this.wwwaasaResourcesError, 'error');
+                    }
+                }
+            } catch (e) {
+                this.wwwaasaResourcesError = 'wwwaasa 托管资源获取失败，请检查账号密码或网络连接';
+                if (!silent) {
+                    this.showToast(this.wwwaasaResourcesError, 'error');
+                }
+            } finally {
+                this.isLoadingWwwaasaResources = false;
+            }
         },
         async fetchMailDomainRuntimeStats(options = {}) {
             const { silent = false } = options;
@@ -1234,6 +1353,18 @@ createApp({
                     this.config.local_microsoft.suffix_len_min = minLen;
                     this.config.local_microsoft.suffix_len_max = maxLen;
                 }
+                if (this.config.wwwaasa) {
+                    const wwwaasaIds = this.parseWwwaasaAccountIds(this.config.wwwaasa.gmail_account_ids);
+                    this.config.wwwaasa.gmail_account_ids = wwwaasaIds.join(',');
+                    this.config.wwwaasa.gmail_account_id = wwwaasaIds[0] || '';
+                    this.config.wwwaasa.alias_type = ['plus', 'dot', 'domain', 'all'].includes(String(this.config.wwwaasa.alias_type || '').trim().toLowerCase())
+                        ? String(this.config.wwwaasa.alias_type || '').trim().toLowerCase()
+                        : 'domain';
+                    this.config.wwwaasa.wait_timeout = Math.max(3, Math.min(30, parseInt(this.config.wwwaasa.wait_timeout, 10) || 20));
+                    this.config.wwwaasa.create_on_demand = normalizeBooleanLike(this.config.wwwaasa.create_on_demand, true);
+                    this.config.wwwaasa.cycle = normalizeBooleanLike(this.config.wwwaasa.cycle, true);
+                    this.config.wwwaasa.disable_failed_alias = normalizeBooleanLike(this.config.wwwaasa.disable_failed_alias, true);
+                }
                 this.config.enable_mail_domain_runtime_control = normalizeBooleanLike(this.config.enable_mail_domain_runtime_control, false);
                 if (!Array.isArray(this.config.mail_domain_failure_types)) {
                     this.config.mail_domain_failure_types = ['discarded_email'];
@@ -1352,10 +1483,14 @@ createApp({
             if (tabId === 'accounts') {
                 this.fetchAccounts();
             }
-			if (tabId === 'email') {
-				this.fetchConfig();
-                    this.fetchMailDomainRuntimeStats();
-			}
+				if (tabId === 'email') {
+					this.fetchConfig().then(() => {
+	                    this.fetchMailDomainRuntimeStats();
+	                    if (this.config?.email_api_mode === 'wwwaasa') {
+	                        this.fetchWwwaasaResources({ silent: true });
+	                    }
+	                });
+				}
 			if (tabId === 'cloud') {
 			    this.fetchCloudAccounts();
 			}

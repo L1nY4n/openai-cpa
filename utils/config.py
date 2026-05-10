@@ -1,5 +1,6 @@
 import os
 import queue
+import re
 import threading
 import yaml
 import random
@@ -217,6 +218,18 @@ CM_LOCAL_WEBHOOK: bool = False
 CM_WEBHOOK_SECRET: str = ""
 MC_API_BASE: str = ""
 MC_KEY: str = ""
+WWWAASA_API_URL: str = "https://mail.wwwaasa.top"
+WWWAASA_API_TOKEN: str = ""
+WWWAASA_USERNAME: str = ""
+WWWAASA_PASSWORD: str = ""
+WWWAASA_GMAIL_ACCOUNT_ID: str = ""
+WWWAASA_GMAIL_ACCOUNT_IDS: list[str] = []
+WWWAASA_ALIAS_TYPE: str = "domain"
+WWWAASA_SOURCE: str = "OpenAI"
+WWWAASA_WAIT_TIMEOUT: int = 20
+WWWAASA_CREATE_ON_DEMAND: bool = True
+WWWAASA_CYCLE: bool = True
+WWWAASA_DISABLE_FAILED_ALIAS: bool = True
 DEFAULT_PROXY: str = ""
 ENABLE_MULTI_THREAD_REG: bool = False
 REG_THREADS: int = 3
@@ -434,6 +447,10 @@ def reload_all_configs(new_config_dict=None):
     global ENABLE_IMAGE2API_MODE, IMAGE2API_URL, IMAGE2API_KEY, IMAGE2API_RETAIN_REG_ONLY, IMAGE2API_IMG_ONLY_MODE
 
     global LUCKMAIL_API_KEY, LUCKMAIL_PREFERRED_DOMAIN, LUCKMAIL_EMAIL_TYPE, LUCKMAIL_VARIANT_MODE, LUCKMAIL_REUSE_PURCHASED, LUCKMAIL_TAG_ID
+    global WWWAASA_API_URL, WWWAASA_API_TOKEN, WWWAASA_USERNAME, WWWAASA_PASSWORD, WWWAASA_GMAIL_ACCOUNT_ID
+    global WWWAASA_GMAIL_ACCOUNT_IDS
+    global WWWAASA_ALIAS_TYPE, WWWAASA_SOURCE, WWWAASA_WAIT_TIMEOUT, WWWAASA_CREATE_ON_DEMAND, WWWAASA_CYCLE
+    global WWWAASA_DISABLE_FAILED_ALIAS
     global HERO_SMS_ENABLED, HERO_SMS_API_KEY, HERO_SMS_BASE_URL, HERO_SMS_COUNTRY, HERO_SMS_SERVICE
     global HERO_SMS_AUTO_PICK_COUNTRY, HERO_SMS_REUSE_PHONE, HERO_SMS_MAX_PRICE, HERO_SMS_VERIFY_ON_REGISTER
     global HERO_SMS_MIN_BALANCE, HERO_SMS_MAX_TRIES, HERO_SMS_POLL_TIMEOUT_SEC
@@ -548,6 +565,22 @@ def reload_all_configs(new_config_dict=None):
                 domains.append(text)
         return domains
 
+    def normalize_str_list(value):
+        if isinstance(value, (list, tuple, set)):
+            raw_items = list(value)
+        elif value is None:
+            raw_items = []
+        else:
+            raw_items = re.split(r"[,;\s]+", str(value))
+        seen = set()
+        items = []
+        for item in raw_items:
+            text = str(item or "").strip()
+            if text and text not in seen:
+                seen.add(text)
+                items.append(text)
+        return items
+
     def safe_bool(value, default=False):
         if isinstance(value, bool):
             return value
@@ -635,6 +668,24 @@ def reload_all_configs(new_config_dict=None):
     _mc = _c.get("mail_curl", {})
     MC_API_BASE = str(_mc.get("api_base", "")).strip().rstrip("/")
     MC_KEY = _mc.get("key", "")
+
+    _wwwaasa = _c.get("wwwaasa", {})
+    WWWAASA_API_URL = str(_wwwaasa.get("api_url", "https://mail.wwwaasa.top")).strip().rstrip("/")
+    WWWAASA_API_TOKEN = str(_wwwaasa.get("api_token") or "").strip()
+    WWWAASA_USERNAME = str(_wwwaasa.get("username") or "").strip()
+    WWWAASA_PASSWORD = str(_wwwaasa.get("password") or "").strip()
+    WWWAASA_GMAIL_ACCOUNT_ID = str(_wwwaasa.get("gmail_account_id") or "").strip()
+    WWWAASA_GMAIL_ACCOUNT_IDS = normalize_str_list(_wwwaasa.get("gmail_account_ids", []))
+    if not WWWAASA_GMAIL_ACCOUNT_IDS and WWWAASA_GMAIL_ACCOUNT_ID:
+        WWWAASA_GMAIL_ACCOUNT_IDS = [WWWAASA_GMAIL_ACCOUNT_ID]
+    WWWAASA_ALIAS_TYPE = str(_wwwaasa.get("alias_type") or "domain").strip().lower()
+    if WWWAASA_ALIAS_TYPE not in {"plus", "dot", "domain", "all"}:
+        WWWAASA_ALIAS_TYPE = "domain"
+    WWWAASA_SOURCE = str(_wwwaasa.get("source") or "OpenAI").strip()
+    WWWAASA_WAIT_TIMEOUT = min(30, safe_int(_wwwaasa.get("wait_timeout", 20), default=20, minimum=3))
+    WWWAASA_CREATE_ON_DEMAND = safe_bool(_wwwaasa.get("create_on_demand", True), default=True)
+    WWWAASA_CYCLE = safe_bool(_wwwaasa.get("cycle", True), default=True)
+    WWWAASA_DISABLE_FAILED_ALIAS = safe_bool(_wwwaasa.get("disable_failed_alias", True), default=True)
 
 
     _ocpa = _c.get("openai_cpa", {})
