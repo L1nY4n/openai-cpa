@@ -539,7 +539,30 @@
                                         </div>
                                         <div class="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center text-xl shadow-inner border border-emerald-100 z-10"><svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg></div>
                                     </div>
-
+                                    <div @click="filterLocalAccounts('with_token')" class="cursor-pointer active:scale-95 bg-white rounded-xl shadow-sm border border-slate-200 p-5 relative overflow-hidden transition-all hover:shadow-md hover:-translate-y-0.5 flex justify-between items-center group">
+                                        <div class="absolute right-0 top-0 w-24 h-24 bg-gradient-to-bl from-sky-100 to-transparent opacity-50 pointer-events-none rounded-bl-full transition-transform group-hover:scale-110"></div>
+                                        <div class="z-10">
+                                            <div class="text-xs font-black text-sky-500 mb-1 uppercase tracking-widest">完整凭证</div>
+                                            <div class="text-3xl font-black text-sky-600">{{ inventoryStats?.local?.with_token || 0 }}</div>
+                                        </div>
+                                        <div class="w-12 h-12 rounded-full bg-sky-50 flex items-center justify-center text-xl shadow-inner border border-sky-100 z-10"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path></svg></div>
+                                    </div>
+<!--                                    <div @click="filterLocalAccounts('reg_only')" class="cursor-pointer active:scale-95 bg-white rounded-xl shadow-sm border border-slate-200 p-5 relative overflow-hidden transition-all hover:shadow-md hover:-translate-y-0.5 flex justify-between items-center group">-->
+<!--                                        <div class="absolute right-0 top-0 w-24 h-24 bg-gradient-to-bl from-orange-100 to-transparent opacity-50 pointer-events-none rounded-bl-full transition-transform group-hover:scale-110"></div>-->
+<!--                                        <div class="z-10">-->
+<!--                                            <div class="text-[11px] font-black text-orange-400 mb-1 uppercase tracking-widest">半成品号</div>-->
+<!--                                            <div class="text-3xl font-black text-orange-500">{{ inventoryStats?.local?.reg_only || 0 }}</div>-->
+<!--                                        </div>-->
+<!--                                        <div class="w-12 h-12 rounded-full bg-orange-50 flex items-center justify-center text-xl shadow-inner border border-orange-100 z-10"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>-->
+<!--                                    </div>-->
+                                    <div @click="filterLocalAccounts('imgsub2api')" class="cursor-pointer active:scale-95 bg-white rounded-xl shadow-sm border border-slate-200 p-5 relative overflow-hidden transition-all hover:shadow-md hover:-translate-y-0.5 flex justify-between items-center group">
+                                        <div class="absolute right-0 top-0 w-24 h-24 bg-gradient-to-bl from-purple-100 to-transparent opacity-50 pointer-events-none rounded-bl-full transition-transform group-hover:scale-110"></div>
+                                        <div class="z-10">
+                                            <div class="text-[11px] font-black text-purple-500 mb-1 uppercase tracking-widest">ImgSub2API</div>
+                                            <div class="text-3xl font-black text-purple-600">{{ inventoryStats?.local?.imgsub2api || 0 }}</div>
+                                        </div>
+                                        <div class="w-12 h-12 rounded-full bg-purple-50 flex items-center justify-center text-xl shadow-inner border border-purple-100 z-10"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg></div>
+                                    </div>
                                     <div @click="filterLocalAccounts('disabled')" class="cursor-pointer active:scale-95 bg-white rounded-xl shadow-sm border border-slate-200 p-5 relative overflow-hidden transition-all hover:shadow-md hover:-translate-y-0.5 flex justify-between items-center group">
                                         <div class="absolute right-0 top-0 w-24 h-24 bg-gradient-to-bl from-rose-100 to-transparent opacity-50 pointer-events-none rounded-bl-full transition-transform group-hover:scale-110"></div>
                                         <div class="z-10">

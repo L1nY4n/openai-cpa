@@ -390,7 +390,7 @@ createApp({
             isLoadingMemoryPrediction: false,
             memoryPredictionError: '',
             inventoryStats: {
-                local: { total: 0, active: 0, disabled: 0 },
+                local: { total: 0, active: 0, disabled: 0, unpushed: 0, with_token: 0, reg_only: 0, imgsub2api: 0 },
                 cloud: { total: 0, cpa: 0, sub2api: 0, enabled: 0 }
             },
             statsTimer: null,
@@ -1535,7 +1535,10 @@ createApp({
                 'all': '全部',
                 'unpushed': '未推送',
                 'active': '活跃',
-                'disabled': '已禁用'
+                'disabled': '已禁用',
+                'with_token': '完整凭证',
+                'reg_only': '半成品号',
+                'imgsub2api': 'ImgSub2API'
             };
             this.showToast(`已筛选: ${statusMap[status]}的本地账号`, 'info');
         },
@@ -2692,7 +2695,7 @@ createApp({
             if (isNaN(d.getTime())) return dateStr;
             return formatMainlandDateTime(d);
         },
-        async exportSub2Api() {
+async exportSub2Api() {
             if (this.selectedAccounts.length === 0) {
                 this.showToast('请先勾选账号', 'warning');
                 return;
@@ -2710,47 +2713,20 @@ createApp({
                     const accounts = res.data.accounts;
                     const timestamp = Math.floor(Date.now() / 1000);
 
-                    if (accounts.length > 1) {
-                        const zip = new JSZip();
+                    // 无论数量多少，直接将返回的数据(包含所有选中的accounts)作为一个JSON文件下载
+                    const content = JSON.stringify(res.data, null, 2);
+                    const blob = new Blob([content], { type: 'application/json' });
+                    const url = window.URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    // 文件名带上数量和时间戳
+                    link.download = `sub2api_批量导出_${accounts.length}个_${timestamp}.json`;
+                    document.body.appendChild(link);
+                    link.click();
+                    link.remove();
+                    window.URL.revokeObjectURL(url);
 
-                        accounts.forEach((acc, index) => {
-                            const prefix = (acc.name || "user").split('@')[0];
-
-                            const singleAccountData = {
-                                exported_at: res.data.exported_at,
-                                proxies: res.data.proxies,
-                                accounts: [acc]
-                            };
-
-                            const filename = `sub2api_${prefix}_${timestamp + index}.json`;
-                            zip.file(filename, JSON.stringify(singleAccountData, null, 2));
-                        });
-
-                        const content = await zip.generateAsync({ type: "blob" });
-                        const url = window.URL.createObjectURL(content);
-                        const link = document.createElement('a');
-                        link.href = url;
-                        link.download = `Sub2Api_批量导出_${accounts.length}个_${timestamp}.zip`;
-                        document.body.appendChild(link);
-                        link.click();
-                        link.remove();
-                        window.URL.revokeObjectURL(url);
-
-                        this.showToast(`🎉 成功打包并下载 ${accounts.length} 个独立配置文件！`, 'success');
-                    } else {
-                        const content = JSON.stringify(res.data, null, 2);
-                        const blob = new Blob([content], { type: 'application/json' });
-                        const url = window.URL.createObjectURL(blob);
-                        const link = document.createElement('a');
-                        link.href = url;
-                        link.download = `sub2api_export_${timestamp}.json`;
-                        document.body.appendChild(link);
-                        link.click();
-                        link.remove();
-                        window.URL.revokeObjectURL(url);
-
-                        this.showToast(`成功导出 ${accounts.length} 个账号到单个文件`, 'success');
-                    }
+                    this.showToast(`🎉 成功导出 ${accounts.length} 个账号到单个 JSON 文件`, 'success');
 
                     this.selectedAccounts = [];
                 } else {
@@ -2758,7 +2734,8 @@ createApp({
                 }
             } catch (error) {
                 console.error('导出异常:', error);
-                this.showToast('导出异常，请检查 JSZip 是否加载', 'error');
+                // 已经不再使用 JSZip，修改一下错误提示
+                this.showToast('导出异常，请检查网络或刷新页面', 'error');
             }
         },
 
