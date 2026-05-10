@@ -11,7 +11,7 @@ from utils import config as cfg
 os.makedirs("data", exist_ok=True)
 DB_PATH = "data/data.db"
 _team_db_lock = threading.Lock()
-
+_sqlite_write_lock = threading.Lock()
 class get_db_conn:
     """抹平 SQLite 和 MySQL 连接差异"""
     def __init__(self, as_dict=False):
@@ -28,7 +28,7 @@ class get_db_conn:
                 charset='utf8mb4'
             )
         else:
-            self.conn = sqlite3.connect(DB_PATH, timeout=10)
+            self.conn = sqlite3.connect(DB_PATH, timeout=30, isolation_level="IMMEDIATE")
             if self.as_dict:
                 self.conn.row_factory = sqlite3.Row
         return self.conn
@@ -128,6 +128,9 @@ def init_db():
 
 def save_account_to_db(email: str, password: str, token_json_str: str) -> bool:
     try:
+        if DB_TYPE != "mysql":
+            _sqlite_write_lock.acquire()
+
         with get_db_conn() as conn:
             c = get_cursor(conn)
             execute_sql(c, '''
@@ -138,7 +141,9 @@ def save_account_to_db(email: str, password: str, token_json_str: str) -> bool:
     except Exception as e:
         print(f"[{cfg.ts()}] [ERROR] 数据库保存失败: {e}")
         return False
-
+    finally:
+            if DB_TYPE != "mysql" and _sqlite_write_lock.locked():
+                _sqlite_write_lock.release()
 
 def get_all_accounts() -> list:
     try:
@@ -390,7 +395,7 @@ def get_and_lock_unused_local_mailbox() -> dict:
                 execute_sql(c, "START TRANSACTION")
                 execute_sql(c, filter_sql + " FOR UPDATE")
             else:
-                execute_sql(c, "BEGIN EXCLUSIVE")
+                # execute_sql(c, "BEGIN EXCLUSIVE")
                 execute_sql(c, filter_sql)
 
             row = c.fetchone()
